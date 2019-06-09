@@ -3,6 +3,9 @@
 * NOTE: I don't promise that this is __fast__ yet;
 * NOTE: currently only supports `Text` but should be generalizable to more string-likes; open an issue if you need it
 
+Based on `pcre-heavy`; so it should support any regexes which it supports.
+I'll likely add a way to pass settings in soon; make an issue if you need this :)
+
 Working with Regexes in Haskell kinda sucks; it's tough to figure out which libs
 to use, and even after you pick one it's tough to figure out how to use it.
 
