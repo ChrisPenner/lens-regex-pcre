@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 import Control.Lens
 import Control.Lens.Regex
-import Data.Text as T hiding (index)
+import qualified Data.Text as T
 import Test.Hspec
 
 main :: IO ()
@@ -93,11 +93,11 @@ main = hspec $ do
                 `shouldBe` ["two"]
 
             it "should allow setting with index" $ do
-                ("one two three" & iregex [rx|\w+|] <. match .@~ pack . show)
+                ("one two three" & iregex [rx|\w+|] <. match .@~ T.pack . show)
                 `shouldBe` "0 1 2"
 
             it "should allow mutating with index" $ do
-                ("one two three" & iregex [rx|\w+|] <. match %@~ \i s -> (pack $ show i) <> ": " <> s)
+                ("one two three" & iregex [rx|\w+|] <. match %@~ \i s -> (T.pack $ show i) <> ": " <> s)
                 `shouldBe` "0: one 1: two 2: three"
 
     describe "igroups" $ do
@@ -110,13 +110,21 @@ main = hspec $ do
             `shouldBe` ["two", "four"]
 
         it "should allow setting with index" $ do
-            ("one two three four" & regex [rx|(\w+) (\w+)|] . igroups .@~ pack . show)
+            ("one two three four" & regex [rx|(\w+) (\w+)|] . igroups .@~ T.pack . show)
             `shouldBe` "0 1 0 1"
 
         it "should allow mutating with index" $ do
-            ("one two three four" & regex [rx|(\w+) (\w+)|] . igroups %@~ \i s -> (pack $ show i) <> ": " <> s)
+            ("one two three four" & regex [rx|(\w+) (\w+)|] . igroups %@~ \i s -> (T.pack $ show i) <> ": " <> s)
             `shouldBe` "0: one 1: two 0: three 1: four"
 
         it "should compose indices with matches" $ do
             ("one two three four" ^.. (iregex [rx|(\w+) (\w+)|] <.> igroups) . withIndex)
             `shouldBe` [((0, 0), "one"), ((0, 1), "two"), ((1, 0), "three"), ((1, 1), "four")]
+
+    describe "grouped" $ do
+        it "should get all groups in batches" $ do
+            "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . grouped
+            `shouldBe` [["raindrops","roses"],["whiskers","kittens"]]
+        it "should allow editing when result list is the same length" $ do
+            ("raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . grouped %~ reverse)
+            `shouldBe` "roses on raindrops and kittens on whiskers"

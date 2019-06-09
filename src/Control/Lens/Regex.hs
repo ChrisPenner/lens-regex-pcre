@@ -21,6 +21,7 @@ module Control.Lens.Regex
     , match
     , groups
     , igroups
+    , grouped
 
     -- * QuasiQuoter
     , rx
@@ -58,9 +59,23 @@ rx = re
 igroups :: IndexedTraversal' Int Match T.Text
 igroups = indexing groups
 
--- | traverse each group within a match. See 'igroups' for selecting specific groups.
+-- | traverse each group within a match. See 'igroups' for selecting specific groups or
+-- 'grouped' for handling all groups at once.
 groups :: Traversal' Match T.Text
 groups = traversed . _Right
+
+-- | Access all groups of a match at once.
+--
+-- Note that this uses 'partsOf'; and is only a valid traversal if you don't
+-- alter the length of the list. It is valid as a Fold or Getter however.
+--
+-- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . grouped
+-- > [["raindrops","roses"],["whiskers","kittens"]]
+--
+-- > > "raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . grouped %~ reverse
+-- > "roses on raindrops and kittens on whiskers"
+grouped :: Traversal' Match [T.Text]
+grouped = partsOf (traversed . _Right)
 
 -- | Traverse each match as a whole
 --
@@ -70,6 +85,7 @@ groups = traversed . _Right
 -- > ["_two_","_four_"]
 --
 -- You can edit the traversal to perform a regex replace/substitution
+--
 -- > > "one _two_ three _four_" & regex [rx|_\w+_|] . match %~ T.toUpper
 -- > "one _TWO_ three _FOUR_"
 match :: Traversal' Match T.Text
@@ -84,34 +100,42 @@ iregex pattern = indexing (regex pattern)
 -- to get the relevant parts of your match.
 --
 -- Getting all matches:
+--
 -- > > "one _two_ three _four_" ^.. regex [rx|_\w+_|] . match
 -- > ["_two_","_four_"]
 --
 -- Regex replace/mutation
+--
 -- > > "one _two_ three _four_" & regex [rx|_\w+_|] . match %~ T.toUpper
 -- > "one _TWO_ three _FOUR_"
 --
 -- Getting groups with their group index.
+--
 -- > > "1/2 and 3/4" ^.. regex [rx|(\d+)/(\d+)|] . igroups . withIndex
 -- > [(0,"1"),(1,"2"),(0,"3"),(1,"4")]
 --
 -- Check for any matches:
+--
 -- > > has (regex [rx|ne+dle|]) "a needle in a haystack"
 -- > True
 --
 -- Check for matches which also match a predicate:
+--
 -- > > has (regex [rx|\w+|] . match . filtered ((> 7) . T.length)) "one word here is loooooooong"
 -- > True
 --
 -- Get the third match
+--
 -- > >  "alpha beta charlie delta" ^? (iregex [rx|\w+|] . index 2 . match)
 -- > Just "charlie"
 --
 -- Replace the third match
+--
 -- > > "alpha beta charlie delta" & (iregex [rx|\w+|] . index 2 . match) .~ "GAMMA"
 -- > "alpha beta GAMMA delta"
 --
 -- Match integers, 'Read' them into ints, then sort each match in-place
+--
 -- > > "Monday: 29, Tuesday: 99, Wednesday: 3" & partsOf' (iregex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
 -- > "Monday: 3, Tuesday: 29, Wednesday: 99"
 regex :: Regex -> Traversal' T.Text Match
