@@ -14,8 +14,6 @@ module Control.Lens.Regex
     , igroups
     ) where
 
-import Data.Functor.Selection
-import Control.Lens.Selection
 import Data.Text as T hiding (index)
 import Data.Text.Encoding as T
 import Text.Regex.PCRE.Heavy hiding (match)

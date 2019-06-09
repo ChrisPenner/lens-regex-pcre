@@ -23,11 +23,12 @@ dependencies:
 - base >= 4.7 && < 5
 - pcre-heavy
 - pcre-light
-- selections
 - text
 - lens
 - template-haskell
 
+ghc-options:
+- -Wall
 library:
   source-dirs: src
 
