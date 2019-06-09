@@ -1,6 +1,8 @@
 # lens-regex-pcre
 
-* NOTE: I don't promise that this is __fast__ yet;
+[Hackage and Docs](http://hackage.haskell.org/package/lens-regex-pcre)
+
+* NOTE: I don't promise that this is __fast__ yet, nor do I have any benchmarks;
 * NOTE: currently only supports `Text` but should be generalizable to more string-likes; open an issue if you need it
 
 Based on `pcre-heavy`; so it should support any regexes which it supports.
@@ -14,47 +16,45 @@ and alter zero or more matches; traversals can even carry indexes so you know wh
 on.
 
 
-Note that all traversals in this library are not techically lawful; the break the 'multi-set'
+Note that all traversals in this library are not techically lawful; they break the 'multi-set'
 idempotence law; in reality this isn't usually a problem; but consider yourself warned. Test your code.
 
 Here are a few examples:
 
 ```haskell
--- Getting all matches:
-> "one _two_ three _four_" ^.. regex [rx|_\w+_|] . match
-["_two_","_four_"]
+txt :: Text
+txt = "raindrops on roses and whiskers on kittens"
 
--- Regex replace/mutation
-> "one _two_ three _four_" & regex [rx|_\w+_|] . match %~ T.toUpper
-"one _TWO_ three _FOUR_"
-
--- Getting groups with their index.
-> "1/2 and 3/4" ^.. regex [rx|(\d+)/(\d+)|] . igroups . withIndex
-[(0,"1"),(1,"2"),(0,"3"),(1,"4")]
-
--- Check for any matches:
-> has (regex [rx|ne+dle|]) "a needle in a haystack"
+-- Search
+λ> has (regex [rx|whisk|]) txt
 True
 
--- Check for matches which also match a predicate:
-> has (regex [rx|\w+|] . match . filtered ((> 7) . T.length)) "one word here is loooooooong"
-True
+-- Get matches
+λ> txt ^.. regex [rx|\br\w+|] . match
+["raindrops","roses"]
+
+-- Edit matches
+λ> txt & regex [rx|\br\w+|] . match %~ T.intersperse '-' . T.toUpper
+"R-A-I-N-D-R-O-P-S on R-O-S-E-S, and whiskers on kittens"
+
+-- Get Groups
+λ> txt ^.. regex [rx|(\w+) on (\w+)|] . grouped
+[["raindrops","roses"],["whiskers","kittens"]]
+
+-- Edit Groups
+λ> txt & regex [rx|(\w+) on (\w+)|] . grouped %~ reverse
+"roses on raindrops, and kittens on whiskers"
 
 -- Get the third match
->  "alpha beta charlie delta" ^? (iregex [rx|\w+|] . index 2 . match)
-Just "charlie"
+λ> txt ^? iregex [rx|\w+|] . index 2 . match
+Just "roses"
 
--- Replace the third match
-> "alpha beta charlie delta" & (iregex [rx|\w+|] . index 2 . match) .~ "GAMMA"
-"alpha beta GAMMA delta"
-
--- Sort all matches alphabetically in place
-> "*charlie* beta = _alpha_ delta" & partsOf (iregex [rx|[a-z]+|] . match) %~ sort
-"*alpha* beta = _charlie_ delta"
-
--- Match integers, 'Read' them into ints, then sort each match in-place
-> "Monday: 29, Tuesday: 99, Wednesday: 3" & partsOf' (iregex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
+-- Match integers, 'Read' them into ints, then sort them in-place
+-- dumping them back into the source text afterwards.
+λ> "Monday: 29, Tuesday: 99, Wednesday: 3" 
+   & partsOf (iregex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
 "Monday: 3, Tuesday: 29, Wednesday: 99"
+
 ```
 
 Basically anything you want to do is possible somehow.

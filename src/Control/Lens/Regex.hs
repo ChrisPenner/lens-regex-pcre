@@ -4,7 +4,7 @@ Description : PCRE regex combinators for interop with lens
 Copyright   : (c) Chris Penner, 2019
 License     : BSD3
 
-Note that all traversals in this library are not techically lawful; the break the 'multi-set'
+Note that all traversals in this library are not techically lawful; they break the 'multi-set'
 idempotence law; in reality this isn't usually a problem; but consider yourself warned. Test your code.
 -}
 
@@ -16,7 +16,9 @@ idempotence law; in reality this isn't usually a problem; but consider yourself 
 {-# LANGUAGE TemplateHaskell #-}
 
 module Control.Lens.Regex
-    ( regex
+    (
+    -- * Combinators
+      regex
     , iregex
     , match
     , groups
@@ -26,6 +28,8 @@ module Control.Lens.Regex
 
     -- * QuasiQuoter
     , rx
+
+    -- * Types
     , Match
     ) where
 
@@ -34,7 +38,9 @@ import Text.Regex.PCRE.Heavy
 import Control.Lens hiding (re, matching)
 import Language.Haskell.TH.Quote
 
--- | Match represents a whole regex match; you can drill into it using 'match' or 'groups'
+-- | Match represents a whole regex match; you can drill into it using 'match' or 'groups' or
+-- 'matchAndGroups'
+-- Consider this to be internal; don't depend on its representation.
 type Match = [Either Text Text]
 type MatchRange = (Int, Int)
 type GroupRanges = [(Int, Int)]
