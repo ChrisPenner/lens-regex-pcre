@@ -128,3 +128,9 @@ main = hspec $ do
         it "should allow editing when result list is the same length" $ do
             ("raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . grouped %~ reverse)
             `shouldBe` "roses on raindrops and kittens on whiskers"
+
+    describe "matchAndGroups" $ do
+        it "should get match and groups" $ do
+            "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . matchAndGroups
+            `shouldBe` [("raindrops on roses",["raindrops","roses"]),("whiskers on kittens",["whiskers","kittens"])]
+

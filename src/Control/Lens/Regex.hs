@@ -22,6 +22,7 @@ module Control.Lens.Regex
     , groups
     , igroups
     , grouped
+    , matchAndGroups
 
     -- * QuasiQuoter
     , rx
@@ -147,6 +148,15 @@ regex pattern f txt =  collapse <$> apply (fmap splitAgain <$> splitter txt matc
     collapse xs = xs ^. folded . beside id (traversed . chosen)
     -- apply :: [Either Text [Either Text Text]] -> _ [Either Text [Either Text Text]]
     apply xs = xs & traversed . _Right %%~ f
+
+-- | Collect both the match text AND all the matching groups
+--
+-- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . matchAndGroups
+-- > [ ("raindrops on roses", ["raindrops","roses"])
+-- > , ("whiskers on kittens", ["whiskers","kittens"])
+-- > ]
+matchAndGroups :: Getter Match (T.Text, [T.Text])
+matchAndGroups = to $ \m -> (m ^. traversed . chosen, m ^. grouped)
 
 splitter :: Text -> [(MatchRange, GroupRanges)] -> [Either T.Text (T.Text, GroupRanges)]
 splitter t [] | T.null t = []
