@@ -10,6 +10,10 @@ As it turns out; regexes are a very lens-like tool; Traversals allow you to sele
 and alter zero or more matches; traversals can even carry indexes so you know which match or group you're working
 on.
 
+
+Note that all traversals in this library are not techically lawful; the break the 'multi-set'
+idempotence law; in reality this isn't usually a problem; but consider yourself warned. Test your code.
+
 Here are a few examples:
 
 ```haskell
