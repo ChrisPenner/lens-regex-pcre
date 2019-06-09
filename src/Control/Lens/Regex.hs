@@ -6,10 +6,12 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Control.Lens.Regex
-    ( re
+    ( rx
     , regex
+    , iregex
     , match
     , groups
+    , igroups
     ) where
 
 import Data.Functor.Selection
@@ -19,10 +21,14 @@ import Data.Text.Encoding as T
 import Text.Regex.PCRE.Heavy hiding (match)
 import Text.Regex.PCRE.Light hiding (match)
 import Control.Lens hiding (re, matching)
+import Language.Haskell.TH.Quote
 
 type Match = [Either Text Text]
 type MatchRange = (Int, Int)
 type GroupRanges = [(Int, Int)]
+
+rx :: QuasiQuoter
+rx = re
 
 igroups :: IndexedTraversal' Int Match T.Text
 igroups = indexing groups
@@ -47,20 +53,30 @@ regex re f txt =  collapse <$> apply (fmap splitAgain <$> splitter txt matches)
     apply xs = xs & traversed . _Right %%~ f
 
 splitter :: Text -> [(MatchRange, GroupRanges)] -> [Either T.Text (T.Text, GroupRanges)]
-splitter t [] = [Left t]
+splitter t [] | T.null t = []
+              | otherwise = [Left t]
 splitter t (((start, end), groups) : rest) = do
     splitOnce t ((start, end), groups)
         <> splitter (T.drop end t) (rest & traversed . beside both (traversed . both) -~ end)
 
 splitAgain :: (T.Text, GroupRanges) -> Match
-splitAgain (t, []) = [Left t]
+splitAgain (t, []) | T.null t = []
+                   | otherwise = [Left t]
 splitAgain (t, (start, end) : rest) = do
     let (before, mid) = T.splitAt start t
     let (focused, after) = T.splitAt (end - start) mid
-    [Left before, Right (focused)] <> splitAgain ((T.drop end t), (rest & traversed . both -~ end))
+    wrapIfNotEmpty before
+        <> [Right focused]
+        <> splitAgain ((T.drop end t), (rest & traversed . both -~ end))
 
 splitOnce :: Text -> (MatchRange, GroupRanges) -> [Either T.Text (T.Text, GroupRanges)]
 splitOnce t ((start, end), groups) = do
     let (before, mid) = T.splitAt start t
     let (focused, after) = T.splitAt (end - start) mid
-    [Left before, Right (focused, groups & traversed . both -~ start)]
+    wrapIfNotEmpty before
+      <> [Right (focused, groups & traversed . both -~ start)]
+
+wrapIfNotEmpty :: Text -> [Either Text a]
+wrapIfNotEmpty txt
+    | T.null txt = []
+    | otherwise = [Left txt]

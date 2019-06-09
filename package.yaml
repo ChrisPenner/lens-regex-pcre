@@ -26,6 +26,7 @@ dependencies:
 - selections
 - text
 - lens
+- template-haskell
 
 library:
   source-dirs: src
@@ -40,3 +41,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - lens-regex-pcre
+    - hspec
