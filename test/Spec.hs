@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
-import Control.Lens hiding (re)
+import Control.Lens
 import Control.Lens.Regex
 import Data.Text as T hiding (index)
 import Test.Hspec
@@ -104,6 +104,10 @@ main = hspec $ do
         it "should allow folding with index" $ do
             ("one two three four" ^.. regex [rx|(\w+) (\w+)|] . igroups . withIndex)
             `shouldBe` [(0, "one"), (1, "two"), (0, "three"), (1, "four")]
+
+        it "should allow getting a specific index" $ do
+            ("one two three four" ^.. regex [rx|(\w+) (\w+)|] . igroups . index 1)
+            `shouldBe` ["two", "four"]
 
         it "should allow setting with index" $ do
             ("one two three four" & regex [rx|(\w+) (\w+)|] . igroups .@~ pack . show)
