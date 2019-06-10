@@ -112,10 +112,13 @@ iregex pattern = indexing (regex pattern)
 -- > > "one _two_ three _four_" & regex [rx|_\w+_|] . match %~ T.toUpper
 -- > "one _TWO_ three _FOUR_"
 --
--- Getting groups with their group index.
+-- Getting captured groups
 --
--- > > "1/2 and 3/4" ^.. regex [rx|(\d+)/(\d+)|] . groups . traversed . withIndex
--- > [(0,"1"),(1,"2"),(0,"3"),(1,"4")]
+-- > λ> "1/2 and 3/4" ^.. regex [rx|(\d+)/(\d+)|] . groups
+-- > [["1","2"],["3","4"]]
+--
+-- > λ> "1/2 and 3/4" ^.. regex [rx|(\d+)/(\d+)|] . groups
+-- > [["1","2"],["3","4"]]
 --
 -- Check for any matches:
 --
