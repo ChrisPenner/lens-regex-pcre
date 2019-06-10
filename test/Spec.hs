@@ -87,6 +87,10 @@ main = hspec $ do
                 ("one two three four" ^.. regex [rx|(\w+) (\w+)|] . groups . ix 1)
                 `shouldBe` ["two", "four"]
 
+            xit "should handle weird group alternation" $ do
+                "1:2 a=b" ^.. regex [rx|(\d):(\d)|(\w)=(\w)|] . match
+                `shouldBe` ["not entirely sure what I expect this to be yet"]
+
         describe "setting" $ do
             it "should allow setting groups as a list" $ do
                 ("one two three" & regex [rx|(\w+) (\w+)|] . groups .~ ["1", "2"])

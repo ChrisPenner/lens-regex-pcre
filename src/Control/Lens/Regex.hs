@@ -34,6 +34,8 @@ module Control.Lens.Regex
 import Data.Text as T hiding (index)
 import Text.Regex.PCRE.Heavy
 import Control.Lens hiding (re, matching)
+import Data.Data (Data)
+import Data.Data.Lens (biplate)
 import Language.Haskell.TH.Quote
 
 -- | Match represents a whole regex match; you can drill into it using 'match' or 'groups' or
@@ -192,12 +194,18 @@ withMatch p mtch = indexed p (matchText mtch) mtch
 withGroups :: IndexedTraversal' [T.Text] Match Match
 withGroups p mtch = indexed p (mtch ^. groups) mtch
 
+-- split up text into matches paired with groups; Left is unmatched text
 splitter :: Text -> [(MatchRange, GroupRanges)] -> [Either T.Text (T.Text, GroupRanges)]
-splitter t [] | T.null t = []
-              | otherwise = [Left t]
-splitter t (((start, end), grps) : rest) = do
+splitter t [] = wrapIfNotEmpty t
+splitter t (((start, end), grps) : rest) =
     splitOnce t ((start, end), grps)
-        <> splitter (T.drop end t) (rest & traversed . beside both (traversed . both) -~ end)
+    <> splitter (T.drop end t) (subtractFromAll end rest)
+
+splitOnce :: Text -> (MatchRange, GroupRanges) -> [Either T.Text (T.Text, GroupRanges)]
+splitOnce t ((start, end), grps) = do
+    let (before, mid) = T.splitAt start t
+    let focused = T.take (end - start) mid
+    wrapIfNotEmpty before <> [Right (focused, subtractFromAll start grps)]
 
 splitAgain :: (T.Text, GroupRanges) -> Match
 splitAgain (t, []) | T.null t = []
@@ -207,14 +215,11 @@ splitAgain (t, (start, end) : rest) = do
     let focused = T.take (end - start) mid
     wrapIfNotEmpty before
         <> [Right focused]
-        <> splitAgain ((T.drop end t), (rest & traversed . both -~ end))
+        <> splitAgain ((T.drop end t), (subtractFromAll end rest))
 
-splitOnce :: Text -> (MatchRange, GroupRanges) -> [Either T.Text (T.Text, GroupRanges)]
-splitOnce t ((start, end), grps) = do
-    let (before, mid) = T.splitAt start t
-    let focused = T.take (end - start) mid
-    wrapIfNotEmpty before
-      <> [Right (focused, grps & traversed . both -~ start)]
+--- helpers
+subtractFromAll :: (Data b) => Int -> b -> b
+subtractFromAll n = biplate -~ n
 
 wrapIfNotEmpty :: Text -> [Either Text a]
 wrapIfNotEmpty txt
