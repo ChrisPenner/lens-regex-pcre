@@ -42,7 +42,7 @@ True
 
 -- Edit Groups
 λ> txt & regex [rx|(\w+) on (\w+)|] . grouped %~ reverse
-"roses on raindrops, and kittens on whiskers"
+"roses on raindrops and kittens on whiskers"
 
 -- Get the third match
 λ> txt ^? iregex [rx|\w+|] . index 2 . match
