@@ -56,45 +56,51 @@ rx = re
 --
 -- Get all matched groups:
 --
--- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups
+-- > λ> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups
 -- > [["raindrops","roses"],["whiskers","kittens"]]
 --
 -- You can access a specific group by combining with `ix`
 --
--- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups .  ix 1
+-- > λ> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups .  ix 1
 -- > ["roses", "kittens"]
 --
 -- @groups@ is a traversal; you can mutate matches through it.
--- > > "raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . groups .  ix 1 %~ T.toUpper
+--
+-- > λ> "raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . groups .  ix 1 %~ T.toUpper
 -- > "raindrops on ROSES and whiskers on KITTENS"
 --
 -- Editing the list rearranges groups
 --
--- > > "raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . groups %~ reverse
+-- > λ> "raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . groups %~ reverse
 -- > "roses on raindrops and kittens on whiskers"
 --
 -- You can traverse the list to flatten out all groups
 --
--- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups . traversed
+-- > λ> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups . traversed
 -- > ["raindrops","roses","whiskers","kittens"]
 groups :: Traversal' Match [T.Text]
 groups = partsOf (traversed . _Right)
 
--- | Traverse each match as a whole
+-- | Traverse each match
 --
--- Use with 'regex' or 'iregex'
+--  Get a match if one exists:
 --
--- > > "one _two_ three _four_" ^.. regex [rx|_\w+_|] . match
+-- > λ> "find a needle in a haystack" ^? regex [rx|n..dle|] . match
+-- > Just "needle"
+--
+--  Collect all matches
+--
+-- > λ> "one _two_ three _four_" ^.. regex [rx|_\w+_|] . match
 -- > ["_two_","_four_"]
 --
 -- You can edit the traversal to perform a regex replace/substitution
 --
--- > > "one _two_ three _four_" & regex [rx|_\w+_|] . match %~ T.toUpper
+-- > λ> "one _two_ three _four_" & regex [rx|_\w+_|] . match %~ T.toUpper
 -- > "one _TWO_ three _FOUR_"
 match :: Traversal' Match T.Text
 match f grps = (:[]) . Right <$> f (grps ^. traversed . chosen)
 
--- | Indexed version of 'regex'.
+-- | 'regex' but indexed with match number
 iregex :: Regex -> IndexedTraversal' Int T.Text Match
 iregex pattern = indexing (regex pattern)
 
@@ -102,48 +108,46 @@ iregex pattern = indexing (regex pattern)
 -- It's a traversal which selects 'Match'es; you can compose it with 'match' or 'groups'
 -- to get the relevant parts of your match.
 --
--- Getting all matches:
+-- > txt :: Text
+-- > txt = "raindrops on roses and whiskers on kittens"
 --
--- > > "one _two_ three _four_" ^.. regex [rx|_\w+_|] . match
--- > ["_two_","_four_"]
+-- Search
 --
--- Regex replace/mutation
---
--- > > "one _two_ three _four_" & regex [rx|_\w+_|] . match %~ T.toUpper
--- > "one _TWO_ three _FOUR_"
---
--- Getting captured groups
---
--- > λ> "1/2 and 3/4" ^.. regex [rx|(\d+)/(\d+)|] . groups
--- > [["1","2"],["3","4"]]
---
--- > λ> "1/2 and 3/4" ^.. regex [rx|(\d+)/(\d+)|] . groups
--- > [["1","2"],["3","4"]]
---
--- Check for any matches:
---
--- > > has (regex [rx|ne+dle|]) "a needle in a haystack"
+-- > λ> has (regex [rx|whisk|]) txt
 -- > True
 --
--- Check for matches which also match a predicate:
+-- Get matches
 --
--- > > has (regex [rx|\w+|] . match . filtered ((> 7) . T.length)) "one word here is loooooooong"
--- > True
+-- > λ> txt ^.. regex [rx|\br\w+|] . match
+-- > ["raindrops","roses"]
+--
+-- Edit matches
+--
+-- > λ> txt & regex [rx|\br\w+|] . match %~ T.intersperse '-' . T.toUpper
+-- > "R-A-I-N-D-R-O-P-S on R-O-S-E-S and whiskers on kittens"
+--
+-- Get Groups
+--
+-- > λ> txt ^.. regex [rx|(\w+) on (\w+)|] . groups
+-- > [["raindrops","roses"],["whiskers","kittens"]]
+--
+-- Edit Groups
+--
+-- > λ> txt & regex [rx|(\w+) on (\w+)|] . groups %~ reverse
+-- > "roses on raindrops and kittens on whiskers"
 --
 -- Get the third match
 --
--- > > "alpha beta charlie delta" ^? (iregex [rx|\w+|] . index 2 . match)
--- > Just "charlie"
+-- > λ> txt ^? iregex [rx|\w+|] . index 2 . match
+-- > Just "roses"
 --
--- Replace the third match
+-- Match integers, 'Read' them into ints, then sort them in-place
+-- dumping them back into the source text afterwards.
 --
--- > > "alpha beta charlie delta" & (iregex [rx|\w+|] . index 2 . match) .~ "GAMMA"
--- > "alpha beta GAMMA delta"
---
--- Match integers, 'Read' them into ints, then sort each match in-place
---
--- > > "Monday: 29, Tuesday: 99, Wednesday: 3" & partsOf' (iregex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
+-- > λ> "Monday: 29, Tuesday: 99, Wednesday: 3"
+-- >    & partsOf (iregex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
 -- > "Monday: 3, Tuesday: 29, Wednesday: 99"
+
 regex :: Regex -> Traversal' T.Text Match
 regex pattern f txt =  collapseMatch <$> apply (fmap splitAgain <$> splitter txt matches)
   where
@@ -159,7 +163,7 @@ matchText m = m ^. traversed . chosen
 
 -- | Collect both the match text AND all the matching groups
 --
--- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . matchAndGroups
+-- > λ> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . matchAndGroups
 -- > [ ("raindrops on roses", ["raindrops","roses"])
 -- > , ("whiskers on kittens", ["whiskers","kittens"])
 -- > ]
@@ -172,7 +176,7 @@ matchAndGroups = to $ \m -> (matchText m, m ^. groups)
 --
 -- If you're viewing or folding you should probably just use 'matchAndGroups'.
 --
--- > > [(["raindrops","roses"],"raindrops on roses"),(["whiskers","kittens"],"whiskers on kittens")]
+-- > λ> [(["raindrops","roses"],"raindrops on roses"),(["whiskers","kittens"],"whiskers on kittens")]
 -- > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . (withGroups <. match) . withIndex
 withMatch :: IndexedTraversal' T.Text Match Match
 withMatch p mtch = indexed p (matchText mtch) mtch
@@ -183,7 +187,7 @@ withMatch p mtch = indexed p (matchText mtch) mtch
 --
 -- If you're viewing or folding you should probably just use 'matchAndGroups'.
 --
--- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . (withMatch <. groups) . withIndex
+-- > λ> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . (withMatch <. groups) . withIndex
 -- > [("raindrops on roses",["raindrops","roses"]),("whiskers on kittens",["whiskers","kittens"])]
 withGroups :: IndexedTraversal' [T.Text] Match Match
 withGroups p mtch = indexed p (mtch ^. groups) mtch
