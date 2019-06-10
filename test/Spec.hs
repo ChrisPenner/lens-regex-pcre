@@ -55,33 +55,6 @@ main = hspec $ do
                     ("one two three" & regex [rx|two|] . match %~ T.toUpper)
                     `shouldBe` "one TWO three"
 
-        describe "groups" $ do
-            describe "getting" $ do
-                it "should get a group" $ do
-                    "a b c" ^.. regex [rx|(\w)|] . groups
-                    `shouldBe` ["a", "b", "c"]
-
-                it "should get many groups" $ do
-                    "one two three" ^.. regex [rx|(\w+) (\w+)|] . groups
-                    `shouldBe` ["one", "two"]
-
-            describe "setting" $ do
-                it "should allow setting" $ do
-                    ("one two three" & regex [rx|(\w+) (\w+)|] . groups .~ "new")
-                    `shouldBe` "new new three"
-
-                it "should allow setting many" $ do
-                    ("one two three four" & regex [rx|(\w+) (\w+)|] . groups .~ "new")
-                    `shouldBe` "new new new new"
-
-                it "should allow mutating" $ do
-                    ("one two three four" & regex [rx|one (two) three|] . groups %~ (<> "!!") . T.toUpper)
-                    `shouldBe` "one TWO!! three four"
-
-                it "should allow mutating" $ do
-                    ("one two three four" & regex [rx|one (two) (three)|] . groups %~ (<> "!!") . T.toUpper)
-                    `shouldBe` "one TWO!! THREE!! four"
-
     describe "iregex" $ do
         describe "match" $ do
             it "should allow folding with index" $ do
@@ -100,34 +73,53 @@ main = hspec $ do
                 ("one two three" & iregex [rx|\w+|] <. match %@~ \i s -> (T.pack $ show i) <> ": " <> s)
                 `shouldBe` "0: one 1: two 2: three"
 
-    describe "igroups" $ do
-        it "should allow folding with index" $ do
-            ("one two three four" ^.. regex [rx|(\w+) (\w+)|] . igroups . withIndex)
-            `shouldBe` [(0, "one"), (1, "two"), (0, "three"), (1, "four")]
+    describe "groups" $ do
+        describe "getting" $ do
+            it "should get groups" $ do
+                "a b c" ^.. regex [rx|(\w)|] . groups
+                `shouldBe` [["a"], ["b"], ["c"]]
 
-        it "should allow getting a specific index" $ do
-            ("one two three four" ^.. regex [rx|(\w+) (\w+)|] . igroups . index 1)
-            `shouldBe` ["two", "four"]
+            it "should get multiple groups" $ do
+                "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups
+                `shouldBe` [["raindrops","roses"],["whiskers","kittens"]]
 
-        it "should allow setting with index" $ do
-            ("one two three four" & regex [rx|(\w+) (\w+)|] . igroups .@~ T.pack . show)
-            `shouldBe` "0 1 0 1"
+            it "should allow getting a specific index" $ do
+                ("one two three four" ^.. regex [rx|(\w+) (\w+)|] . groups . ix 1)
+                `shouldBe` ["two", "four"]
 
-        it "should allow mutating with index" $ do
-            ("one two three four" & regex [rx|(\w+) (\w+)|] . igroups %@~ \i s -> (T.pack $ show i) <> ": " <> s)
-            `shouldBe` "0: one 1: two 0: three 1: four"
+        describe "setting" $ do
+            it "should allow setting groups as a list" $ do
+                ("one two three" & regex [rx|(\w+) (\w+)|] . groups .~ ["1", "2"])
+                `shouldBe` "1 2 three"
 
-        it "should compose indices with matches" $ do
-            ("one two three four" ^.. (iregex [rx|(\w+) (\w+)|] <.> igroups) . withIndex)
-            `shouldBe` [((0, 0), "one"), ((0, 1), "two"), ((1, 0), "three"), ((1, 1), "four")]
+            it "should allow editing when result list is the same length" $ do
+                ("raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . groups %~ reverse)
+                `shouldBe` "roses on raindrops and kittens on whiskers"
 
-    describe "grouped" $ do
-        it "should get all groups in batches" $ do
-            "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . grouped
-            `shouldBe` [["raindrops","roses"],["whiskers","kittens"]]
-        it "should allow editing when result list is the same length" $ do
-            ("raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . grouped %~ reverse)
-            `shouldBe` "roses on raindrops and kittens on whiskers"
+        describe "traversed" $ do
+            it "should allow setting all group matches" $ do
+                ("one two three" & regex [rx|(\w+) (\w+)|] . groups . traversed .~ "new")
+                `shouldBe` "new new three"
+
+            it "should allow mutating" $ do
+                ("one two three four" & regex [rx|one (two) (three)|] . groups . traversed %~ (<> "!!") . T.toUpper)
+                `shouldBe` "one TWO!! THREE!! four"
+
+            it "should allow folding with index" $ do
+                ("one two three four" ^.. regex [rx|(\w+) (\w+)|] . groups . traversed . withIndex)
+                `shouldBe` [(0, "one"), (1, "two"), (0, "three"), (1, "four")]
+
+            it "should allow setting with index" $ do
+                ("one two three four" & regex [rx|(\w+) (\w+)|] . groups . traversed .@~ T.pack . show)
+                `shouldBe` "0 1 0 1"
+
+            it "should allow mutating with index" $ do
+                ("one two three four" & regex [rx|(\w+) (\w+)|] . groups . traversed %@~ \i s -> (T.pack $ show i) <> ": " <> s)
+                `shouldBe` "0: one 1: two 0: three 1: four"
+
+            it "should compose indices with matches" $ do
+                ("one two three four" ^.. (iregex [rx|(\w+) (\w+)|] <.> groups . traversed) . withIndex)
+                `shouldBe` [((0, 0), "one"), ((0, 1), "two"), ((1, 0), "three"), ((1, 1), "four")]
 
     describe "matchAndGroups" $ do
         it "should get match and groups" $ do

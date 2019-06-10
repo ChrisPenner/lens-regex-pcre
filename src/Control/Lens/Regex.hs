@@ -22,8 +22,6 @@ module Control.Lens.Regex
     , iregex
     , match
     , groups
-    , igroups
-    , grouped
     , matchAndGroups
 
     -- * QuasiQuoter
@@ -51,38 +49,36 @@ type GroupRanges = [(Int, Int)]
 rx :: QuasiQuoter
 rx = re
 
--- | 'groups' but indexed by the group number. If you traverse over many matches you will
--- encounter duplicate indices.
--- E.g.
---
--- > > "a 1 b 2" ^.. regex [rx|(\w) (\d)|] . igroups . withIndex
--- > [(0,"a"),(1,"1"),(0,"b"),(1,"2")]
---
--- If you want only a specific group; combine this with `index`
--- E.g.
---
--- > > "a 1 b 2" ^.. regex [rx|(\w) (\d)|] . igroups . index 0
--- > ["a","b"]
-igroups :: IndexedTraversal' Int Match T.Text
-igroups = indexing groups
-
--- | traverse each group within a match. See 'igroups' for selecting specific groups or
--- 'grouped' for handling all groups at once.
-groups :: Traversal' Match T.Text
-groups = traversed . _Right
-
 -- | Access all groups of a match at once.
 --
--- Note that this uses 'partsOf'; and is only a valid traversal if you don't
--- alter the length of the list. It is valid as a Fold or Getter however.
+-- Note that you can edit the groups through this traversal,
+-- Changing the length of the list has behaviour similar to 'partsOf'.
 --
--- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . grouped
+-- Get all matched groups:
+--
+-- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups
 -- > [["raindrops","roses"],["whiskers","kittens"]]
 --
--- > > "raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . grouped %~ reverse
+-- You can access a specific group by combining with `ix`
+--
+-- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups .  ix 1
+-- > ["roses", "kittens"]
+--
+-- @groups@ is a traversal; you can mutate matches through it.
+-- > > "raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . groups .  ix 1 %~ T.toUpper
+-- > "raindrops on ROSES and whiskers on KITTENS"
+--
+-- Editing the list rearranges groups
+--
+-- > > "raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . groups %~ reverse
 -- > "roses on raindrops and kittens on whiskers"
-grouped :: Traversal' Match [T.Text]
-grouped = partsOf (traversed . _Right)
+--
+-- You can traverse the list to flatten out all groups
+--
+-- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups . traversed
+-- > ["raindrops","roses","whiskers","kittens"]
+groups :: Traversal' Match [T.Text]
+groups = partsOf (traversed . _Right)
 
 -- | Traverse each match as a whole
 --
@@ -118,7 +114,7 @@ iregex pattern = indexing (regex pattern)
 --
 -- Getting groups with their group index.
 --
--- > > "1/2 and 3/4" ^.. regex [rx|(\d+)/(\d+)|] . igroups . withIndex
+-- > > "1/2 and 3/4" ^.. regex [rx|(\d+)/(\d+)|] . groups . traversed . withIndex
 -- > [(0,"1"),(1,"2"),(0,"3"),(1,"4")]
 --
 -- Check for any matches:
@@ -133,7 +129,7 @@ iregex pattern = indexing (regex pattern)
 --
 -- Get the third match
 --
--- > >  "alpha beta charlie delta" ^? (iregex [rx|\w+|] . index 2 . match)
+-- > > "alpha beta charlie delta" ^? (iregex [rx|\w+|] . index 2 . match)
 -- > Just "charlie"
 --
 -- Replace the third match
@@ -146,14 +142,17 @@ iregex pattern = indexing (regex pattern)
 -- > > "Monday: 29, Tuesday: 99, Wednesday: 3" & partsOf' (iregex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
 -- > "Monday: 3, Tuesday: 29, Wednesday: 99"
 regex :: Regex -> Traversal' T.Text Match
-regex pattern f txt =  collapse <$> apply (fmap splitAgain <$> splitter txt matches)
+regex pattern f txt =  collapseMatch <$> apply (fmap splitAgain <$> splitter txt matches)
   where
     matches :: [(MatchRange, GroupRanges)]
     matches = scanRanges pattern txt
-    collapse :: [Either Text [Either Text Text]] -> Text
-    collapse xs = xs ^. folded . beside id (traversed . chosen)
+    collapseMatch :: [Either Text [Either Text Text]] -> Text
+    collapseMatch xs = xs ^. folded . beside id (traversed . chosen)
     -- apply :: [Either Text [Either Text Text]] -> _ [Either Text [Either Text Text]]
     apply xs = xs & traversed . _Right %%~ f
+
+matchText :: Match -> T.Text
+matchText m = m ^. traversed . chosen
 
 -- | Collect both the match text AND all the matching groups
 --
@@ -162,7 +161,29 @@ regex pattern f txt =  collapse <$> apply (fmap splitAgain <$> splitter txt matc
 -- > , ("whiskers on kittens", ["whiskers","kittens"])
 -- > ]
 matchAndGroups :: Getter Match (T.Text, [T.Text])
-matchAndGroups = to $ \m -> (m ^. traversed . chosen, m ^. grouped)
+matchAndGroups = to $ \m -> (matchText m, m ^. groups)
+
+-- | This allows you to "stash" the match text into an index for use later in the traversal.
+-- This is a slight abuse of indices; but it can sometimes be handy. This allows you to
+-- have the full match in scope when editing groups using indexed combinators.
+--
+-- If you're viewing or folding you should probably just use 'matchAndGroups'.
+--
+-- > > [(["raindrops","roses"],"raindrops on roses"),(["whiskers","kittens"],"whiskers on kittens")]
+-- > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . (withGroups <. match) . withIndex
+withMatch :: IndexedTraversal' T.Text Match Match
+withMatch p mtch = indexed p (matchText mtch) mtch
+
+-- | This allows you to "stash" the match text into an index for use later in the traversal.
+-- This is a slight abuse of indices; but it can sometimes be handy. This allows you to
+-- have the full match in scope when editing groups using indexed combinators.
+--
+-- If you're viewing or folding you should probably just use 'matchAndGroups'.
+--
+-- > > "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . (withMatch <. groups) . withIndex
+-- > [("raindrops on roses",["raindrops","roses"]),("whiskers on kittens",["whiskers","kittens"])]
+withGroups :: IndexedTraversal' [T.Text] Match Match
+withGroups p mtch = indexed p (mtch ^. groups) mtch
 
 splitter :: Text -> [(MatchRange, GroupRanges)] -> [Either T.Text (T.Text, GroupRanges)]
 splitter t [] | T.null t = []
