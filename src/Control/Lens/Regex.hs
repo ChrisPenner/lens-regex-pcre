@@ -29,6 +29,7 @@ module Control.Lens.Regex
 
     -- * Types
     , Match
+    , Regex
     ) where
 
 import Data.Text as T hiding (index)
@@ -154,7 +155,13 @@ iregex pattern = indexing (regex pattern)
 --
 -- >>> "Monday: 29, Tuesday: 99, Wednesday: 3" & partsOf (iregex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
 -- "Monday: 3, Tuesday: 29, Wednesday: 99"
-
+--
+-- To alter behaviour of the regex you may wish to pass 'PCREOption's when compiling it.
+-- The default behaviour may seem strange in certain cases; e.g. it operates in 'single-line'
+-- mode.
+--
+-- You can make your own version of the QuasiQuoter with any options you want embedded
+-- by using 'mkRegexQQ'.
 regex :: Regex -> Traversal' T.Text Match
 regex pattern f txt =  collapseMatch <$> apply (fmap splitAgain <$> splitter txt matches)
   where
