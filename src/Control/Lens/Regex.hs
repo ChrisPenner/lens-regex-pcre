@@ -23,8 +23,11 @@ module Control.Lens.Regex
     , groups
     , matchAndGroups
 
-    -- * QuasiQuoter
+    -- * Compiling regex
     , rx
+    , mkRegexQQ
+    , compile
+    , compileM
 
     -- * Types
     , Match
@@ -33,6 +36,7 @@ module Control.Lens.Regex
 
 import Data.Text as T hiding (index)
 import Text.Regex.PCRE.Heavy
+import Text.Regex.PCRE.Light (compile)
 import Control.Lens hiding (re, matching)
 import Data.Data (Data)
 import Data.Data.Lens (biplate)
