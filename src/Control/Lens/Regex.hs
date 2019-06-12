@@ -19,7 +19,6 @@ module Control.Lens.Regex
     (
     -- * Combinators
       regex
-    , iregex
     , match
     , groups
     , matchAndGroups
@@ -52,12 +51,6 @@ import Language.Haskell.TH.Quote
 type Match = [Either Text Text]
 type MatchRange = (Int, Int)
 type GroupRanges = [(Int, Int)]
-
--- | 'QuasiQuoter' for compiling regexes.
--- This is just 're' re-exported under a different name so as not to conflict with @re@ from
--- 'Control.Lens'
-rx :: QuasiQuoter
-rx = re
 
 -- | Access all groups of a match at once.
 --
@@ -110,10 +103,6 @@ groups = partsOf (traversed . _Right)
 match :: Traversal' Match T.Text
 match f grps = (:[]) . Right <$> f (grps ^. traversed . chosen)
 
--- | 'regex' but indexed with match number
-iregex :: Regex -> IndexedTraversal' Int T.Text Match
-iregex pattern = indexing (regex pattern)
-
 -- | The base combinator for doing regex searches.
 -- It's a traversal which selects 'Match'es; you can compose it with 'match' or 'groups'
 -- to get the relevant parts of your match.
@@ -147,23 +136,27 @@ iregex pattern = indexing (regex pattern)
 --
 -- Get the third match
 --
--- >>> txt ^? iregex [rx|\w+|] . index 2 . match
+-- >>> txt ^? regex [rx|\w+|] . index 2 . match
 -- Just "roses"
 --
 -- Match integers, 'Read' them into ints, then sort them in-place
 -- dumping them back into the source text afterwards.
 --
--- >>> "Monday: 29, Tuesday: 99, Wednesday: 3" & partsOf (iregex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
+-- >>> "Monday: 29, Tuesday: 99, Wednesday: 3" & partsOf (regex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
 -- "Monday: 3, Tuesday: 29, Wednesday: 99"
 --
 -- To alter behaviour of the regex you may wish to pass 'PCREOption's when compiling it.
 -- The default behaviour may seem strange in certain cases; e.g. it operates in 'single-line'
--- mode.
---
--- You can make your own version of the QuasiQuoter with any options you want embedded
+-- mode. You can 'compile' the 'Regex' separately and add any options you like, then pass the resulting
+-- 'Regex' into 'regex';
+-- Alternatively can make your own version of the QuasiQuoter with any options you want embedded
 -- by using 'mkRegexQQ'.
-regex :: Regex -> Traversal' T.Text Match
-regex pattern f txt =  collapseMatch <$> apply (fmap splitAgain <$> splitter txt matches)
+regex :: Regex -> IndexedTraversal' Int T.Text Match
+regex pattern = indexing (regexT pattern)
+
+-- | Base regex traversal. Used only to define 'regex'
+regexT :: Regex -> Traversal' T.Text Match
+regexT pattern f txt = collapseMatch <$> apply (fmap splitAgain <$> splitter txt matches)
   where
     matches :: [(MatchRange, GroupRanges)]
     matches = scanRanges pattern txt
@@ -171,6 +164,7 @@ regex pattern f txt =  collapseMatch <$> apply (fmap splitAgain <$> splitter txt
     collapseMatch xs = xs ^. folded . beside id (traversed . chosen)
     -- apply :: [Either Text [Either Text Text]] -> _ [Either Text [Either Text Text]]
     apply xs = xs & traversed . _Right %%~ f
+
 
 matchText :: Match -> T.Text
 matchText m = m ^. traversed . chosen
@@ -181,6 +175,12 @@ matchText m = m ^. traversed . chosen
 -- [("raindrops on roses",["raindrops","roses"]),("whiskers on kittens",["whiskers","kittens"])]
 matchAndGroups :: Getter Match (T.Text, [T.Text])
 matchAndGroups = to $ \m -> (matchText m, m ^. groups)
+
+-- | 'QuasiQuoter' for compiling regexes.
+-- This is just 're' re-exported under a different name so as not to conflict with @re@ from
+-- 'Control.Lens'
+rx :: QuasiQuoter
+rx = re
 
 -- | This allows you to "stash" the match text into an index for use later in the traversal.
 -- This is a slight abuse of indices; but it can sometimes be handy. This allows you to

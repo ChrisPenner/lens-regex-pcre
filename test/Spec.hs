@@ -55,22 +55,21 @@ main = hspec $ do
                     ("one two three" & regex [rx|two|] . match %~ T.toUpper)
                     `shouldBe` "one TWO three"
 
-    describe "iregex" $ do
-        describe "match" $ do
+        describe "indexed" $ do
             it "should allow folding with index" $ do
-                ("one two three" ^.. (iregex [rx|\w+|] <. match) . withIndex)
+                ("one two three" ^.. (regex [rx|\w+|] <. match) . withIndex)
                 `shouldBe` [(0, "one"), (1, "two"), (2, "three")]
 
             it "should allow getting with index" $ do
-                ("one two three" ^.. iregex [rx|\w+|] . index 1 . match)
+                ("one two three" ^.. regex [rx|\w+|] . index 1 . match)
                 `shouldBe` ["two"]
 
             it "should allow setting with index" $ do
-                ("one two three" & iregex [rx|\w+|] <. match .@~ T.pack . show)
+                ("one two three" & regex [rx|\w+|] <. match .@~ T.pack . show)
                 `shouldBe` "0 1 2"
 
             it "should allow mutating with index" $ do
-                ("one two three" & iregex [rx|\w+|] <. match %@~ \i s -> (T.pack $ show i) <> ": " <> s)
+                ("one two three" & regex [rx|\w+|] <. match %@~ \i s -> (T.pack $ show i) <> ": " <> s)
                 `shouldBe` "0: one 1: two 2: three"
 
     describe "groups" $ do
@@ -122,7 +121,7 @@ main = hspec $ do
                 `shouldBe` "0: one 1: two 0: three 1: four"
 
             it "should compose indices with matches" $ do
-                ("one two three four" ^.. (iregex [rx|(\w+) (\w+)|] <.> groups . traversed) . withIndex)
+                ("one two three four" ^.. (regex [rx|(\w+) (\w+)|] <.> groups . traversed) . withIndex)
                 `shouldBe` [((0, 0), "one"), ((0, 1), "two"), ((1, 0), "three"), ((1, 1), "four")]
 
     describe "matchAndGroups" $ do
