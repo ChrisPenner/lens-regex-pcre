@@ -45,7 +45,7 @@ True
 "roses on raindrops and kittens on whiskers"
 
 -- Get the third match
-λ> txt ^? iregex [rx|\w+|] . index 2 . match
+λ> txt ^? regex [rx|\w+|] . index 2 . match
 Just "roses"
 
 -- Match integers, 'Read' them into ints, then sort them in-place
