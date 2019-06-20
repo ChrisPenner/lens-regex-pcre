@@ -51,7 +51,7 @@ Just "roses"
 -- Match integers, 'Read' them into ints, then sort them in-place
 -- dumping them back into the source text afterwards.
 λ> "Monday: 29, Tuesday: 99, Wednesday: 3" 
-   & partsOf (iregex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
+   & partsOf (regex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
 "Monday: 3, Tuesday: 29, Wednesday: 99"
 
 ```
@@ -92,6 +92,14 @@ describe "regex" $ do
                 "abc" ^.. regex [rx|\w+?|] . match
                 `shouldBe`["a", "b", "c"]
 
+            it "should allow folding with index" $ do
+                ("one two three" ^.. (regex [rx|\w+|] <. match) . withIndex)
+                `shouldBe` [(0, "one"), (1, "two"), (2, "three")]
+
+            it "should allow getting with index" $ do
+                ("one two three" ^.. regex [rx|\w+|] . index 1 . match)
+                `shouldBe` ["two"]
+
         describe "setting" $ do
             it "should allow setting" $ do
                 ("one two three" & regex [rx|two|] . match .~ "new")
@@ -109,23 +117,13 @@ describe "regex" $ do
                 ("one two three" & regex [rx|two|] . match %~ T.toUpper)
                 `shouldBe` "one TWO three"
 
-describe "iregex" $ do
-    describe "match" $ do
-        it "should allow folding with index" $ do
-            ("one two three" ^.. (iregex [rx|\w+|] <. match) . withIndex)
-            `shouldBe` [(0, "one"), (1, "two"), (2, "three")]
+            it "should allow setting with index" $ do
+                ("one two three" & regex [rx|\w+|] <. match .@~ T.pack . show)
+                `shouldBe` "0 1 2"
 
-        it "should allow getting with index" $ do
-            ("one two three" ^.. iregex [rx|\w+|] . index 1 . match)
-            `shouldBe` ["two"]
-
-        it "should allow setting with index" $ do
-            ("one two three" & iregex [rx|\w+|] <. match .@~ T.pack . show)
-            `shouldBe` "0 1 2"
-
-        it "should allow mutating with index" $ do
-            ("one two three" & iregex [rx|\w+|] <. match %@~ \i s -> (T.pack $ show i) <> ": " <> s)
-            `shouldBe` "0: one 1: two 2: three"
+            it "should allow mutating with index" $ do
+                ("one two three" & regex [rx|\w+|] <. match %@~ \i s -> (T.pack $ show i) <> ": " <> s)
+                `shouldBe` "0: one 1: two 2: three"
 
 describe "groups" $ do
     describe "getting" $ do
@@ -172,7 +170,7 @@ describe "groups" $ do
             `shouldBe` "0: one 1: two 0: three 1: four"
 
         it "should compose indices with matches" $ do
-            ("one two three four" ^.. (iregex [rx|(\w+) (\w+)|] <.> groups . traversed) . withIndex)
+            ("one two three four" ^.. (regex [rx|(\w+) (\w+)|] <.> groups . traversed) . withIndex)
             `shouldBe` [((0, 0), "one"), ((0, 1), "two"), ((1, 0), "three"), ((1, 1), "four")]
 
 describe "matchAndGroups" $ do
