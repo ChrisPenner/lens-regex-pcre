@@ -38,6 +38,16 @@ main = hspec $ do
                     "abc" ^.. regex [rx|\w+?|] . match
                     `shouldBe`["a", "b", "c"]
 
+                it "should handle unicode in source text properly" $ do
+                    "🍕 test 🍔" ^. regex [rx|test|] . match
+                        `shouldBe` "test"
+                    ("🍕 test 🍔" & regex [rx|🍔|] . match .~ "👻🙈")
+                        `shouldBe` "🍕 test 👻🙈"
+
+                it "should handle unicode in patterns properly" $ do
+                    "*🍕 test 🍔*" ^. regex [rx|🍕 \w+ 🍔|] . match
+                    `shouldBe` "🍕 test 🍔"
+
             describe "setting" $ do
                 it "should allow setting" $ do
                     ("one two three" & regex [rx|two|] . match .~ "new")

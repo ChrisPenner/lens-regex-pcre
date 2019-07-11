@@ -34,7 +34,10 @@ module Control.Lens.Regex
     , Regex
     ) where
 
-import Data.Text as T hiding (index)
+import qualified Data.Text as T hiding (index)
+import qualified Data.Text.Encoding as T
+import qualified Data.Text.Encoding.Error as T
+import qualified Data.ByteString as BS
 import Text.Regex.PCRE.Heavy
 import Text.Regex.PCRE.Light (compile)
 import Control.Lens hiding (re, matching)
@@ -52,7 +55,7 @@ import Language.Haskell.TH.Quote
 -- | Match represents a whole regex match; you can drill into it using 'match' or 'groups' or
 -- 'matchAndGroups'
 -- Consider this to be internal; don't depend on its representation.
-type Match = [Either Text Text]
+type Match text = [Either text text]
 type MatchRange = (Int, Int)
 type GroupRanges = [(Int, Int)]
 
@@ -85,7 +88,7 @@ type GroupRanges = [(Int, Int)]
 --
 -- >>> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups . traversed
 -- ["raindrops","roses","whiskers","kittens"]
-groups :: Traversal' Match [T.Text]
+groups :: Traversal' (Match text) [text]
 groups = partsOf (traversed . _Right)
 
 -- | Traverse each match
@@ -104,7 +107,7 @@ groups = partsOf (traversed . _Right)
 --
 -- >>> "one _two_ three _four_" & regex [rx|_\w+_|] . match %~ T.toUpper
 -- "one _TWO_ three _FOUR_"
-match :: Traversal' Match T.Text
+match :: Monoid text => Traversal' (Match text) text
 match f grps = (:[]) . Right <$> f (grps ^. traversed . chosen)
 
 -- | The base combinator for doing regex searches.
@@ -155,29 +158,38 @@ match f grps = (:[]) . Right <$> f (grps ^. traversed . chosen)
 -- 'Regex' into 'regex';
 -- Alternatively can make your own version of the QuasiQuoter with any options you want embedded
 -- by using 'mkRegexQQ'.
-regex :: Regex -> IndexedTraversal' Int T.Text Match
-regex pattern = indexing (regexT pattern)
+regex :: Regex -> IndexedTraversal' Int T.Text (Match T.Text)
+regex pattern = utf8 . regexBS pattern . matchBsText
+  where
+    utf8 :: Iso' T.Text BS.ByteString
+    utf8 = iso T.encodeUtf8 (T.decodeUtf8With T.lenientDecode)
+    matchBsText :: Iso' [Either BS.ByteString BS.ByteString] (Match T.Text)
+    matchBsText = iso (traversed . chosen %~ T.decodeUtf8With T.lenientDecode) (traversed . chosen %~ T.encodeUtf8)
 
--- | Base regex traversal. Used only to define 'regex'
-regexT :: Regex -> Traversal' T.Text Match
+regexBS :: Regex -> IndexedTraversal' Int BS.ByteString (Match BS.ByteString)
+regexBS pattern = indexing (regexT pattern)
+
+-- | Base regex traversal. Used only to define 'regex' traversals
+regexT :: Regex -> Traversal' BS.ByteString [Either BS.ByteString BS.ByteString]
 regexT pattern f txt = collapseMatch <$> apply (fmap splitAgain <$> splitter txt matches)
   where
     matches :: [(MatchRange, GroupRanges)]
     matches = scanRanges pattern txt
-    collapseMatch :: [Either Text [Either Text Text]] -> Text
+    collapseMatch :: [Either BS.ByteString [Either BS.ByteString BS.ByteString]] -> BS.ByteString
     collapseMatch xs = xs ^. folded . beside id (traversed . chosen)
     -- apply :: [Either Text [Either Text Text]] -> _ [Either Text [Either Text Text]]
     apply xs = xs & traversed . _Right %%~ f
 
 
-matchText :: Match -> T.Text
+-- | Get the full match text from a match
+matchText :: Monoid text => Match text -> text
 matchText m = m ^. traversed . chosen
 
 -- | Collect both the match text AND all the matching groups
 --
 -- >>> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . matchAndGroups
 -- [("raindrops on roses",["raindrops","roses"]),("whiskers on kittens",["whiskers","kittens"])]
-matchAndGroups :: Getter Match (T.Text, [T.Text])
+matchAndGroups :: Monoid text => Getter (Match text) (text, [text])
 matchAndGroups = to $ \m -> (matchText m, m ^. groups)
 
 -- | 'QuasiQuoter' for compiling regexes.
@@ -194,8 +206,7 @@ rx = re
 --
 -- >>> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . (withGroups <. match) . withIndex
 -- [(["raindrops","roses"],"raindrops on roses"),(["whiskers","kittens"],"whiskers on kittens")]
---
-withMatch :: IndexedTraversal' T.Text Match Match
+withMatch :: Monoid text => IndexedTraversal' text (Match text) (Match text)
 withMatch p mtch = indexed p (matchText mtch) mtch
 
 -- | This allows you to "stash" the match text into an index for use later in the traversal.
@@ -206,37 +217,37 @@ withMatch p mtch = indexed p (matchText mtch) mtch
 --
 -- >>> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . (withMatch <. groups) . withIndex
 -- [("raindrops on roses",["raindrops","roses"]),("whiskers on kittens",["whiskers","kittens"])]
-withGroups :: IndexedTraversal' [T.Text] Match Match
+withGroups :: IndexedTraversal' [text] (Match text) (Match text)
 withGroups p mtch = indexed p (mtch ^. groups) mtch
 
 -- split up text into matches paired with groups; Left is unmatched text
-splitter :: Text -> [(MatchRange, GroupRanges)] -> [Either T.Text (T.Text, GroupRanges)]
+splitter :: BS.ByteString -> [(MatchRange, GroupRanges)] -> [Either BS.ByteString (BS.ByteString, GroupRanges)]
 splitter t [] = wrapIfNotEmpty t
 splitter t (((start, end), grps) : rest) =
     splitOnce t ((start, end), grps)
-    <> splitter (T.drop end t) (subtractFromAll end rest)
+    <> splitter (BS.drop end t) (subtractFromAll end rest)
 
-splitOnce :: Text -> (MatchRange, GroupRanges) -> [Either T.Text (T.Text, GroupRanges)]
+splitOnce :: BS.ByteString -> (MatchRange, GroupRanges) -> [Either BS.ByteString (BS.ByteString, GroupRanges)]
 splitOnce t ((start, end), grps) = do
-    let (before, mid) = T.splitAt start t
-    let focused = T.take (end - start) mid
+    let (before, mid) = BS.splitAt start t
+    let focused = BS.take (end - start) mid
     wrapIfNotEmpty before <> [Right (focused, subtractFromAll start grps)]
 
-splitAgain :: (T.Text, GroupRanges) -> Match
-splitAgain (t, []) | T.null t = []
+splitAgain :: (BS.ByteString, GroupRanges) -> [Either BS.ByteString BS.ByteString]
+splitAgain (t, []) | BS.null t = []
                    | otherwise = [Left t]
 splitAgain (t, (start, end) : rest) = do
-    let (before, mid) = T.splitAt start t
-    let focused = T.take (end - start) mid
+    let (before, mid) = BS.splitAt start t
+    let focused = BS.take (end - start) mid
     wrapIfNotEmpty before
         <> [Right focused]
-        <> splitAgain ((T.drop end t), (subtractFromAll end rest))
+        <> splitAgain ((BS.drop end t), (subtractFromAll end rest))
 
 --- helpers
 subtractFromAll :: (Data b) => Int -> b -> b
 subtractFromAll n = biplate -~ n
 
-wrapIfNotEmpty :: Text -> [Either Text a]
+wrapIfNotEmpty :: BS.ByteString -> [Either BS.ByteString a]
 wrapIfNotEmpty txt
-    | T.null txt = []
+    | BS.null txt = []
     | otherwise = [Left txt]

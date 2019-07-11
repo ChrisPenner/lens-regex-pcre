@@ -24,6 +24,7 @@ dependencies:
 - pcre-heavy
 - pcre-light
 - text
+- bytestring
 - lens
 - template-haskell
 

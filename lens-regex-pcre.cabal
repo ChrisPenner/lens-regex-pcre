@@ -42,6 +42,7 @@ library
     , pcre-light
     , template-haskell
     , text
+    , bytestring
   default-language: Haskell2010
 
 test-suite lens-regex-pcre-test
