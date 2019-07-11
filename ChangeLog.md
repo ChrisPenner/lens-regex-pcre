@@ -1,5 +1,9 @@
 # Changelog for lens-regex-pcre
 
+# 0.3.1.0 
+Match -> Match text
+Added regexBS to run regex on ByteStrings directly
+
 # 0.3.0.0 
 Unify `iregex` into `regex` as a single indexed traversal
 

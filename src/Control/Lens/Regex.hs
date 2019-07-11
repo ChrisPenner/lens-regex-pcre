@@ -3,9 +3,6 @@ Module      : Control.Lens.Regex
 Description : PCRE regex combinators for interop with lens
 Copyright   : (c) Chris Penner, 2019
 License     : BSD3
-
-Note that all traversals in this library are not techically lawful; they break the 'multi-set'
-idempotence law; in reality this isn't usually a problem; but consider yourself warned. Test your code.
 -}
 
 {-# LANGUAGE FlexibleContexts #-}
@@ -19,6 +16,7 @@ module Control.Lens.Regex
     (
     -- * Combinators
       regex
+    , regexBS
     , match
     , groups
     , matchAndGroups
@@ -50,10 +48,13 @@ import Language.Haskell.TH.Quote
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XTypeApplications
 -- >>> import Data.Text.Lens (unpacked)
+-- >>> import Data.Text (Text)
 -- >>> import Data.List (sort)
 
--- | Match represents a whole regex match; you can drill into it using 'match' or 'groups' or
--- 'matchAndGroups'
+-- | Match represents a whole regex match; you can drill into it using 'match' or 'groups' or 'matchAndGroups'
+--
+-- @text@ is either "Text" or "ByteString" depending on whether you use 'regex' or 'regexBS'
+--
 -- Consider this to be internal; don't depend on its representation.
 type Match text = [Either text text]
 type MatchRange = (Int, Int)
@@ -166,6 +167,9 @@ regex pattern = utf8 . regexBS pattern . matchBsText
     matchBsText :: Iso' [Either BS.ByteString BS.ByteString] (Match T.Text)
     matchBsText = iso (traversed . chosen %~ T.decodeUtf8With T.lenientDecode) (traversed . chosen %~ T.encodeUtf8)
 
+-- | A version of 'regex' which operates directly on 'BS.ByteString's.
+-- This is more efficient than using 'regex' as it avoids converting back and forth
+-- between 'BS.ByteString' and 'T.Text'.
 regexBS :: Regex -> IndexedTraversal' Int BS.ByteString (Match BS.ByteString)
 regexBS pattern = indexing (regexT pattern)
 

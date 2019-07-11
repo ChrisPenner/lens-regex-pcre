@@ -7,7 +7,7 @@ cabal-version: 1.12
 -- hash: c1baf100f3d2d1c413b88695a96d578b0a8d18aace0929759a5428dcfa30b1f1
 
 name:           lens-regex-pcre
-version:        0.3.0.0
+version:        0.3.1.0
 synopsis:       A lensy interface to regular expressions
 description:    Please see the README on GitHub at <https://github.com/ChrisPenner/lens-regex-pcre#readme>
 category:       Regex
