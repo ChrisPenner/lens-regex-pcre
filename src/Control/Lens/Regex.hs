@@ -171,7 +171,7 @@ regex pattern = utf8 . regexBS pattern . matchBsText
 -- This is more efficient than using 'regex' as it avoids converting back and forth
 -- between 'BS.ByteString' and 'T.Text'.
 regexBS :: Regex -> IndexedTraversal' Int BS.ByteString (Match BS.ByteString)
-regexBS pattern = indexing (regexT pattern)
+regexBS pattern = conjoined (regexT pattern) (indexing (regexT pattern))
 
 -- | Base regex traversal. Used only to define 'regex' traversals
 regexT :: Regex -> Traversal' BS.ByteString [Either BS.ByteString BS.ByteString]
