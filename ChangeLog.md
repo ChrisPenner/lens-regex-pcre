@@ -1,5 +1,8 @@
 # Changelog for lens-regex-pcre
 
+# UNRELEASED 0.3.2.0
+Add 'group = groups . ix n' for accessing a single group.
+
 # 0.3.1.0 
 Match -> Match text
 Added regexBS to run regex on ByteStrings directly

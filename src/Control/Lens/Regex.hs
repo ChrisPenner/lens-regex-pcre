@@ -19,9 +19,10 @@ module Control.Lens.Regex
     , regexBS
     , match
     , groups
+    , group
     , matchAndGroups
 
-    -- * Compiling regex
+    -- * Compiling regexes
     , rx
     , mkRegexQQ
     , compile
@@ -32,7 +33,7 @@ module Control.Lens.Regex
     , Regex
     ) where
 
-import qualified Data.Text as T hiding (index)
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Error as T
 import qualified Data.ByteString as BS
@@ -70,7 +71,7 @@ type GroupRanges = [(Int, Int)]
 -- >>> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups
 -- [["raindrops","roses"],["whiskers","kittens"]]
 --
--- You can access a specific group by combining with `ix`
+-- You can access a specific group combining with 'ix', or just use 'group' instead
 --
 -- >>> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . groups .  ix 1
 -- ["roses","kittens"]
@@ -91,6 +92,21 @@ type GroupRanges = [(Int, Int)]
 -- ["raindrops","roses","whiskers","kittens"]
 groups :: Traversal' (Match text) [text]
 groups = partsOf (traversed . _Right)
+
+-- | Access a specific group of a match. Numbering starts at 0.
+--
+-- See 'groups' for more info on grouping
+--
+-- >>> "key:value, a:b" ^.. regex [rx|(\w+):(\w+)|] . group 0
+-- ["key","a"]
+--
+-- >>> "key:value, a:b" ^.. regex [rx|(\w+):(\w+)|] . group 1
+-- ["value","b"]
+--
+-- >>> "key:value, a:b" & regex [rx|(\w+):(\w+)|] . group 1 %~ T.toUpper
+-- "key:VALUE, a:B" 
+group :: Int -> Traversal' (Match text) text
+group n = groups . ix n
 
 -- | Traverse each match
 --

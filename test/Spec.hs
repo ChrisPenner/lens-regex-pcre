@@ -109,6 +109,15 @@ main = hspec $ do
                 ("raindrops on roses and whiskers on kittens" & regex [rx|(\w+) on (\w+)|] . groups %~ reverse)
                 `shouldBe` "roses on raindrops and kittens on whiskers"
 
+    describe "group" $ do
+        it "should get a single group" $ do
+                "a:b c:d" ^.. regex [rx|(\w):(\w)|] . group 1
+                `shouldBe` ["b", "d"]
+
+        it "should set a single group" $ do
+                "a:b c:d" & regex [rx|(\w):(\w)|] . group 1 %~ T.toUpper
+                `shouldBe` "a:B c:D"
+
         describe "traversed" $ do
             it "should allow setting all group matches" $ do
                 ("one two three" & regex [rx|(\w+) (\w+)|] . groups . traversed .~ "new")

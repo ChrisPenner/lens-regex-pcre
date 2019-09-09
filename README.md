@@ -18,7 +18,7 @@ txt :: Text
 txt = "raindrops on roses and whiskers on kittens"
 
 -- Search
-λ> has (regex [rx|whisk|]) txt
+λ> has (regex [rx|whisk|] . match) txt
 True
 
 -- Get matches
