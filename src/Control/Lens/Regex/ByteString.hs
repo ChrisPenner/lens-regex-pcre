@@ -166,7 +166,8 @@ regexT pattern f txt = unBuilder . collapseMatch <$> apply (splitAll txt matches
 
 -- | Get the full match text from a match
 matchText :: Match -> BS.ByteString
-matchText m = unBuilder $ m ^. traversed . chosen
+matchText = view match
+    -- unBuilder $ m ^. traversed . chosen
 
 -- | Collect both the match text AND all the matching groups
 --
