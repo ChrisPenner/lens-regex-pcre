@@ -6,7 +6,6 @@ import Control.Lens
 import Control.Lens.Regex.ByteString
 import qualified Data.ByteString.Char8 as C8 hiding (index)
 import Data.Char
-import qualified Data.Text.Encoding as T
 import Test.Hspec
 
 spec :: Spec
