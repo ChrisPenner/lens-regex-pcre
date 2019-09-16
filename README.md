@@ -66,10 +66,14 @@ See the [benchmarks](./bench/Bench.hs).
 ## Summary
 
 * **Search** `lens-regex-pcre` is within margins of equality to `pcre-heavy`
-* **Replace** `lens-regex-pcre` beats `pcre-heavy` by a 
 * **Replace** `lens-regex-pcre` beats `pcre-heavy` by ~10%
+* **Modify** `pcre-heavy` doesn't support this operation at all, so I guess `lens-regex-pcre` wins here :)
+
+How can it possibly be **faster** if it's based on `pcre-heavy`? `lens-regex-pcre` only uses `pcre-heavy` for **finding** the matches, not substitution/replacement. After that it splits the text into chunks and traverses over them with whichever operation you've chosen. The nature of this implementation makes it a lot easier to understand than imperative implementations of the same thing. This means it's pretty easy to make edits, and is also the reason we can support arbitrary traversals/actions. It was easy enough, so I went ahead and made the whole thing use ByteString Builders, which sped it up a lot. I suspect that `pcre-heavy` can benefit from the same optimization if anyone feels like back-porting it; it could be (almost) as nicely using simple `traverse` without any lenses. The whole thing is only about 25 LOC.
 
 I'm neither a benchmarks nor stats person, so please open an issue if anything here seems fishy.
+
+Without `pcre-light` and `pcre-heavy` this library wouldn't be possible, so huge thanks to all contributors!
 
 Here are the benchmarks on my 2013 Macbook (2.6 Ghz i5)
 
