@@ -1,6 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 import Control.Lens
+-- import Control.Lens.Regex
 import Control.Lens.Regex
 import qualified Data.Text as T
 import Test.Hspec

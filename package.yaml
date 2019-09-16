@@ -27,6 +27,7 @@ dependencies:
 - bytestring
 - lens
 - template-haskell
+- gauge
 
 ghc-options:
 - -Wall
@@ -44,3 +45,15 @@ tests:
     dependencies:
     - lens-regex-pcre
     - hspec
+
+benchmarks:
+  lens-regex-pcre-bench:
+    main:                Bench.hs
+    source-dirs:         bench
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - lens-regex-pcre
+    - gauge
