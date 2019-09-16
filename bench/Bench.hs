@@ -1,6 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Bench where
 
 import Gauge.Benchmark
 import Gauge.Main

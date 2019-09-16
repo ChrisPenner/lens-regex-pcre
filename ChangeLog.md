@@ -1,6 +1,10 @@
 # Changelog for lens-regex-pcre
 
-# UNRELEASED 0.3.2.0
+# UNRELEASED 1.0.0.0
+Split Control.Lens.Regex into Control.Lens.Regex.Text and Control.Lens.Regex.ByteString
+Move regexBS to `Control.Lens.Regex.ByteString.regex`
+Change whole implementation to use ByteString Builders for a massive speedup
+Add groups to index of `match` and match to index of `groups` & `group`
 Add 'group = groups . ix n' for accessing a single group.
 
 # 0.3.1.0 
