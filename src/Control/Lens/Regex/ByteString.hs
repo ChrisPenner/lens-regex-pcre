@@ -37,7 +37,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Builder as BS
 import Text.Regex.PCRE.Heavy
 import Text.Regex.PCRE.Light (compile)
-import Control.Lens hiding (re, matching)
+import Control.Lens hiding (re)
 import Data.Bifunctor
 import Language.Haskell.TH.Quote
 
@@ -50,12 +50,15 @@ import Language.Haskell.TH.Quote
 -- >>> import Data.List hiding (group)
 -- >>> import Data.ByteString.Lens
 
--- | Match represents a whole regex match; you can drill into it using 'match' or 'groups' or 'matchAndGroups'
---
--- Consider this to be internal; its representation may change on patch on non-major version bumps
-type Match = [Either BS.Builder BS.Builder]
 type MatchRange = (Int, Int)
 type GroupRanges = [(Int, Int)]
+
+-- | Match represents an opaque regex match.
+-- You can drill into it using 'match', 'groups', 'group' or 'matchAndGroups'
+newtype Match = Match [Either BS.Builder BS.Builder]
+
+chunks :: Iso' Match [Either BS.Builder BS.Builder]
+chunks = coerced
 
 unBuilder :: BS.Builder -> BS.ByteString
 unBuilder = BL.toStrict . BS.toLazyByteString
@@ -104,7 +107,7 @@ groups :: IndexedTraversal' BS.ByteString Match [BS.ByteString]
 groups = conjoined groupsT (reindexed (view match) selfIndex <. groupsT)
     where
       groupsT :: Traversal' Match [BS.ByteString]
-      groupsT = partsOf (traversed . _Right . building)
+      groupsT = chunks . partsOf (traversed . _Right . building)
 
 -- | Access a specific group of a match. Numbering starts at 0.
 --
@@ -155,8 +158,8 @@ match :: IndexedTraversal' [BS.ByteString] Match BS.ByteString
 match = conjoined matchBS (reindexed (view groups) selfIndex <. matchBS)
   where
     matchBS :: Traversal' Match BS.ByteString
-    matchBS = matchT . building
-    matchT :: Traversal' Match BS.Builder
+    matchBS = chunks . matchT . building
+    matchT :: Traversal' [Either BS.Builder BS.Builder] BS.Builder
     matchT f grps =
         (:[]) . Right <$> f (grps ^. folded . chosen)
 
@@ -229,7 +232,7 @@ match = conjoined matchBS (reindexed (view groups) selfIndex <. matchBS)
 -- Alternatively can make your own version of the QuasiQuoter with any options you want embedded
 -- by using 'mkRegexQQ'.
 regex :: Regex -> IndexedTraversal' Int BS.ByteString Match
-regex pattern = conjoined (regexT pattern) (indexing (regexT pattern))
+regex pattern = conjoined (regexT pattern) (indexing (regexT pattern)) . from chunks
 
 -- | Base regex traversal. Used only to define 'regex' traversal
 regexT :: Regex -> Traversal' BS.ByteString [Either BS.Builder BS.Builder]
