@@ -27,7 +27,6 @@ dependencies:
 - bytestring
 - lens
 - template-haskell
-- gauge
 
 ghc-options:
 - -Wall

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d58974161f49b9d777304d0ae5d9e421f43c3b68fffe9d84157e39d710dd5160
+-- hash: 180c5f967c6015d744fced6cc57a608c2aab3ccaca4a6ce8e0472c6d69a50c83
 
 name:           lens-regex-pcre
 version:        0.3.1.0
@@ -39,7 +39,6 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
-    , gauge
     , lens
     , pcre-heavy
     , pcre-light
@@ -60,7 +59,6 @@ test-suite lens-regex-pcre-test
   build-depends:
       base >=4.7 && <5
     , bytestring
-    , gauge
     , hspec
     , lens
     , lens-regex-pcre

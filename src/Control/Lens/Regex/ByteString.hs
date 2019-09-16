@@ -1,6 +1,6 @@
 {-|
-Module      : Control.Lens.Regex
-Description : PCRE regex combinators for interop with lens
+Module      : Control.Lens.Regex.ByteString
+Description : ByteString PCRE Regex library with a lensy interface.
 Copyright   : (c) Chris Penner, 2019
 License     : BSD3
 -}
