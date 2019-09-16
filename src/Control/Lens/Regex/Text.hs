@@ -12,7 +12,7 @@ License     : BSD3
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Control.Lens.Regex
+module Control.Lens.Regex.Text
     (
     -- * Combinators
       regex
@@ -226,25 +226,3 @@ matchAndGroups = to $ \m -> (m ^. match, m ^. groups)
 -- 'Control.Lens'
 rx :: QuasiQuoter
 rx = re
-
--- | This allows you to "stash" the match T.Text into an index for use later in the traversal.
--- This is a slight abuse of indices; but it can sometimes be handy. This allows you to
--- have the full match in scope when editing groups using indexed combinators.
---
--- If you're viewing or folding you should probably just use 'matchAndGroups'.
---
--- >>> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . (withGroups <. match) . withIndex
--- [(["raindrops","roses"],"raindrops on roses"),(["whiskers","kittens"],"whiskers on kittens")]
-withMatch :: IndexedTraversal' T.Text RBS.Match RBS.Match
-withMatch p mtch = indexed p (mtch ^. match) mtch
-
--- | This allows you to "stash" the match T.Text into an index for use later in the traversal.
--- This is a slight abuse of indices; but it can sometimes be handy. This allows you to
--- have the full match in scope when editing groups using indexed combinators.
---
--- If you're viewing or folding you should probably just use 'matchAndGroups'.
---
--- >>> "raindrops on roses and whiskers on kittens" ^.. regex [rx|(\w+) on (\w+)|] . (withMatch <. groups) . withIndex
--- [("raindrops on roses",["raindrops","roses"]),("whiskers on kittens",["whiskers","kittens"])]
-withGroups :: IndexedTraversal' [T.Text] RBS.Match RBS.Match
-withGroups p mtch = indexed p (mtch ^. groups) mtch
