@@ -11,6 +11,9 @@ License     : BSD3
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Control.Lens.Regex.ByteString
     (
@@ -40,6 +43,7 @@ import Text.Regex.PCRE.Light (compile)
 import Control.Lens hiding (re)
 import Data.Bifunctor
 import Language.Haskell.TH.Quote
+import GHC.TypeLits
 
 -- $setup
 -- >>> :set -XQuasiQuotes
@@ -56,6 +60,12 @@ type GroupRanges = [(Int, Int)]
 -- | Match represents an opaque regex match.
 -- You can drill into it using 'match', 'groups', 'group' or 'matchAndGroups'
 newtype Match = Match [Either BS.Builder BS.Builder]
+
+instance TypeError
+  ('Text "You're trying to 'show' a raw 'Match' object."
+   ':$$: 'Text "You likely missed adding a 'match' or 'groups' or 'group' call after your 'regex' call :)")
+  => Show Match where
+  show _ = "This is a raw Match object, did you miss a 'match' or 'groups' or 'group' call after your 'regex'?"
 
 chunks :: Iso' Match [Either BS.Builder BS.Builder]
 chunks = coerced
