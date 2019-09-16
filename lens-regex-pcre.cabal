@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 05f5634897b6bb19f9c624b6d00a562d5d788dae3194918176d1261182dc993b
+-- hash: 95c9e13a3f8b890abb40adecf0d393e5e2115181013ccd1bd11f40170da7dad2
 
 name:           lens-regex-pcre
 version:        0.3.1.0
@@ -31,7 +31,6 @@ library
   exposed-modules:
       Control.Lens.Regex
       Control.Lens.Regex.ByteString
-      Control.Lens.Regex.Internal.Utils
   other-modules:
       Paths_lens_regex_pcre
   hs-source-dirs:
