@@ -147,6 +147,10 @@ mkRegexTraversalQQ opts = (PCRE.mkRegexQQ opts){TH.quoteExp=quoter}
         regexExpr <- TH.varE 'regexing
         return $ TH.AppE regexExpr rgx
 
+-- | Build a traversal from the provided 'PCRE.Regex', this is handy if you're QuasiQuoter
+-- averse, or if you already have a 'PCRE.Regex' object floating around.
+--
+-- Also see 'mkRegexTraversalQQ'
 regexing :: PCRE.Regex -> IndexedTraversal' Int T.Text RBS.Match
 regexing pat = utf8 . RBS.regexing pat
 
@@ -208,7 +212,7 @@ groups = reindexed (view $ from utf8) RBS.groups <. mapping (from utf8)
 --
 -- Replace the first capture group with the full match:
 --
--- >>> "a, b" & [regex|(\w+), (\w+)|] . Control.Lens.Regex.ByteString.group 0 .@~ \i -> "(" <> i <> ")"
+-- >>> "a, b" & [regex|(\w+), (\w+)|] . group 0 .@~ \i -> "(" <> i <> ")"
 -- "(a, b), b"
 group :: Int -> IndexedTraversal' T.Text RBS.Match T.Text
 group n = groups <. ix n

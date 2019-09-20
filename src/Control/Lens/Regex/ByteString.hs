@@ -135,7 +135,7 @@ groups = conjoined groupsT (reindexed (view match) selfIndex <. groupsT)
 --
 -- Replace the first capture group with the full match:
 --
--- >>> "a, b" & [regex|(\w+), (\w+)|] . Control.Lens.Regex.ByteString.group 0 .@~ \i -> "(" <> i <> ")"
+-- >>> "a, b" & [regex|(\w+), (\w+)|] . group 0 .@~ \i -> "(" <> i <> ")"
 -- "(a, b), b"
 group :: Int -> IndexedTraversal' BS.ByteString Match BS.ByteString
 group n = groups <. ix n
