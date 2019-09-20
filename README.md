@@ -26,33 +26,33 @@ txt :: Text
 txt = "raindrops on roses and whiskers on kittens"
 
 -- Search
->>> has (regex [rx|whisk|] . match) txt
+>>> has [regex|whisk|] . match txt
 True
 
 -- Get matches
->>> txt ^.. regex [rx|\br\w+|] . match
+>>> txt ^.. [regex|\br\w+|] . match
 ["raindrops","roses"]
 
 -- Edit matches
->>> txt & regex [rx|\br\w+|] . match %~ T.intersperse '-' . T.toUpper
+>>> txt & [regex|\br\w+|] . match %~ T.intersperse '-' . T.toUpper
 "R-A-I-N-D-R-O-P-S on R-O-S-E-S and whiskers on kittens"
 
 -- Get Groups
->>> txt ^.. regex [rx|(\w+) on (\w+)|] . groups
+>>> txt ^.. [regex|(\w+) on (\w+)|] . groups
 [["raindrops","roses"],["whiskers","kittens"]]
 
 -- Edit Groups
->>> txt & regex [rx|(\w+) on (\w+)|] . groups %~ reverse
+>>> txt & [regex|(\w+) on (\w+)|] . groups %~ reverse
 "roses on raindrops and kittens on whiskers"
 
 -- Get the third match
->>> txt ^? regex [rx|\w+|] . index 2 . match
+>>> txt ^? [regex|\w+|] . index 2 . match
 Just "roses"
 
 -- Match integers, 'Read' them into ints, then sort them in-place
 -- dumping them back into the source text afterwards.
 >>> "Monday: 29, Tuesday: 99, Wednesday: 3" 
-   & partsOf (regex [rx|\d+|] . match . unpacked . _Show @Int) %~ sort
+   & partsOf ([regex|\d+|] . match . unpacked . _Show @Int) %~ sort
 "Monday: 3, Tuesday: 29, Wednesday: 99"
 
 ```
@@ -65,7 +65,9 @@ See the [benchmarks](./bench/Bench.hs).
 
 ## Summary
 
-* **Search** `lens-regex-pcre` is within margins of equality to `pcre-heavy`
+Caveat: I'm by no means a benchmarking expert; if you have tips on how to do this better I'm all ears!
+
+* **Search** `lens-regex-pcre` is *marginally* slower than `pcre-heavy`, but well within acceptable margins (within 0.6%)
 * **Replace** `lens-regex-pcre` beats `pcre-heavy` by ~10%
 * **Modify** `pcre-heavy` doesn't support this operation at all, so I guess `lens-regex-pcre` wins here :)
 
@@ -78,61 +80,63 @@ Without `pcre-light` and `pcre-heavy` this library wouldn't be possible, so huge
 Here are the benchmarks on my 2013 Macbook (2.6 Ghz i5)
 
 ```haskell
-benchmarking static pattern search/pcre-heavy ... took 20.70 s, total 56 iterations
+benchmarking static pattern search/pcre-heavy ... took 20.78 s, total 56 iterations
 benchmarked static pattern search/pcre-heavy
-time                 375.9 ms   (374.6 ms .. 377.2 ms)
-                     1.000 R²   (1.000 R² .. 1.000 R²)
-mean                 376.3 ms   (375.7 ms .. 376.8 ms)
-std dev              842.4 μs   (501.8 μs .. 1.142 ms)
+time                 375.3 ms   (372.0 ms .. 378.5 ms)
+                     1.000 R²   (0.999 R² .. 1.000 R²)
+mean                 378.1 ms   (376.4 ms .. 380.8 ms)
+std dev              3.747 ms   (922.3 μs .. 5.609 ms)
 
-benchmarking static pattern search/lens-regex-pcre ... took 20.90 s, total 56 iterations
+benchmarking static pattern search/lens-regex-pcre ... took 20.79 s, total 56 iterations
 benchmarked static pattern search/lens-regex-pcre
-time                 381.5 ms   (378.4 ms .. 387.1 ms)
-                     1.000 R²   (0.999 R² .. 1.000 R²)
-mean                 379.1 ms   (377.4 ms .. 381.2 ms)
-std dev              3.415 ms   (2.266 ms .. 5.175 ms)
+time                 379.5 ms   (376.2 ms .. 382.4 ms)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 377.3 ms   (376.5 ms .. 378.4 ms)
+std dev              1.667 ms   (1.075 ms .. 2.461 ms)
 
-benchmarking complex pattern search/pcre-heavy ... took 96.61 s, total 56 iterations
+benchmarking complex pattern search/pcre-heavy ... took 95.95 s, total 56 iterations
 benchmarked complex pattern search/pcre-heavy
-time                 1.757 s    (1.755 s .. 1.759 s)
+time                 1.741 s    (1.737 s .. 1.746 s)
                      1.000 R²   (1.000 R² .. 1.000 R²)
-mean                 1.756 s    (1.755 s .. 1.758 s)
-std dev              2.741 ms   (1.879 ms .. 4.478 ms)
+mean                 1.746 s    (1.744 s .. 1.749 s)
+std dev              4.499 ms   (3.186 ms .. 6.080 ms)
 
-benchmarking complex pattern search/lens-regex-pcre ... took 96.61 s, total 56 iterations
+benchmarking complex pattern search/lens-regex-pcre ... took 97.26 s, total 56 iterations
 benchmarked complex pattern search/lens-regex-pcre
-time                 1.755 s    (1.753 s .. 1.759 s)
-                     1.000 R²   (1.000 R² .. 1.000 R²)
-mean                 1.757 s    (1.755 s .. 1.758 s)
-std dev              2.069 ms   (1.533 ms .. 2.619 ms)
+time                 1.809 s    (1.736 s .. 1.908 s)
+                     0.996 R²   (0.991 R² .. 1.000 R²)
+mean                 1.757 s    (1.742 s .. 1.810 s)
+std dev              42.83 ms   (11.51 ms .. 70.69 ms)
 
-benchmarking simple replacement/pcre-heavy ... took 23.82 s, total 56 iterations
+benchmarking simple replacement/pcre-heavy ... took 23.32 s, total 56 iterations
 benchmarked simple replacement/pcre-heavy
-time                 430.8 ms   (425.6 ms .. 436.0 ms)
-                     1.000 R²   (0.999 R² .. 1.000 R²)
-mean                 433.5 ms   (431.1 ms .. 437.8 ms)
-std dev              5.558 ms   (2.552 ms .. 8.918 ms)
+time                 423.8 ms   (422.4 ms .. 425.3 ms)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 424.0 ms   (422.9 ms .. 426.2 ms)
+std dev              2.684 ms   (1.239 ms .. 4.270 ms)
 
-benchmarking simple replacement/lens-regex-pcre ... took 20.82 s, total 56 iterations
+benchmarking simple replacement/lens-regex-pcre ... took 20.84 s, total 56 iterations
 benchmarked simple replacement/lens-regex-pcre
-time                 378.1 ms   (377.1 ms .. 378.8 ms)
-                     1.000 R²   (1.000 R² .. 1.000 R²)
-mean                 378.6 ms   (378.2 ms .. 379.5 ms)
-std dev              1.105 ms   (354.0 μs .. 1.736 ms)
+time                 382.8 ms   (374.3 ms .. 391.5 ms)
+                     0.999 R²   (0.999 R² .. 1.000 R²)
+mean                 378.2 ms   (376.3 ms .. 381.0 ms)
+std dev              3.794 ms   (2.577 ms .. 5.418 ms)
 
-benchmarking complex replacement/pcre-heavy ... took 25.16 s, total 56 iterations
+benchmarking complex replacement/pcre-heavy ... took 24.77 s, total 56 iterations
 benchmarked complex replacement/pcre-heavy
-time                 454.7 ms   (446.8 ms .. 459.2 ms)
-                     0.999 R²   (0.998 R² .. 1.000 R²)
-mean                 457.4 ms   (454.7 ms .. 464.8 ms)
-std dev              7.455 ms   (2.088 ms .. 11.90 ms)
-
-benchmarking complex replacement/lens-regex-pcre ... took 22.06 s, total 56 iterations
-benchmarked complex replacement/lens-regex-pcre
-time                 399.9 ms   (398.8 ms .. 401.1 ms)
+time                 448.1 ms   (444.7 ms .. 450.0 ms)
                      1.000 R²   (1.000 R² .. 1.000 R²)
-mean                 401.1 ms   (400.2 ms .. 402.2 ms)
-std dev              1.688 ms   (1.249 ms .. 2.315 ms)
+mean                 450.8 ms   (449.5 ms .. 453.9 ms)
+std dev              3.129 ms   (947.0 μs .. 4.841 ms)
+
+benchmarking complex replacement/lens-regex-pcre ... took 21.99 s, total 56 iterations
+benchmarked complex replacement/lens-regex-pcre
+time                 399.9 ms   (398.4 ms .. 402.2 ms)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 399.6 ms   (399.0 ms .. 400.4 ms)
+std dev              1.135 ms   (826.2 μs .. 1.604 ms)
+
+Benchmark lens-regex-pcre-bench: FINISH
 ```
 
 # Behaviour

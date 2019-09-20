@@ -4,7 +4,7 @@
 import Gauge.Benchmark
 import Gauge.Main
 import Data.ByteString as BS
-import Text.Regex.PCRE.Heavy
+import qualified Text.Regex.PCRE.Heavy as PCRE
 import Control.Lens
 import Control.Lens.Regex.ByteString
 
@@ -13,31 +13,31 @@ main = do
     srcFile <- BS.readFile "./bench/data/small-bible.txt"
     defaultMain
       [ bgroup "static pattern search"
-        [ bench "pcre-heavy" $ nf (heavySearch [rx|Moses|]) srcFile
-        , bench "lens-regex-pcre" $ nf (lensSearch [rx|Moses|]) srcFile
+        [ bench "pcre-heavy" $ nf (heavySearch [PCRE.re|Moses|]) srcFile
+        , bench "lens-regex-pcre" $ nf (lensSearch [PCRE.re|Moses|]) srcFile
         ]
       , bgroup "complex pattern search"
-        [ bench "pcre-heavy" $ nf (heavySearch [rx|l\w+e|]) srcFile
-        , bench "lens-regex-pcre" $ nf (lensSearch [rx|l\w+e|]) srcFile
+        [ bench "pcre-heavy" $ nf (heavySearch [PCRE.re|l\w+e|]) srcFile
+        , bench "lens-regex-pcre" $ nf (lensSearch [PCRE.re|l\w+e|]) srcFile
         ]
       , bgroup "simple replacement"
-        [ bench "pcre-heavy" $ nf (heavyReplace [rx|Moses|] "Jarvis") srcFile
-        , bench "lens-regex-pcre" $ nf (lensReplace [rx|Moses|] "Jarvis") srcFile
+        [ bench "pcre-heavy" $ nf (heavyReplace [PCRE.re|Moses|] "Jarvis") srcFile
+        , bench "lens-regex-pcre" $ nf (lensReplace [PCRE.re|Moses|] "Jarvis") srcFile
         ]
       , bgroup "complex replacement"
-        [ bench "pcre-heavy" $ nf (heavyReplace [rx|M\w*s\w*s|] "Jarvis") srcFile
-        , bench "lens-regex-pcre" $ nf (lensReplace [rx|M\w*s\w*s|] "Jarvis") srcFile
+        [ bench "pcre-heavy" $ nf (heavyReplace [PCRE.re|M\w*s\w*s|] "Jarvis") srcFile
+        , bench "lens-regex-pcre" $ nf (lensReplace [PCRE.re|M\w*s\w*s|] "Jarvis") srcFile
         ]
       ]
 
 heavySearch :: Regex -> BS.ByteString -> [BS.ByteString]
-heavySearch pat src = fst <$> scan pat src
+heavySearch pat src = fst <$> PCRE.scan pat src
 
 lensSearch :: Regex -> BS.ByteString -> [BS.ByteString]
-lensSearch pat src = src ^.. regex pat . match
+lensSearch pat src = src ^.. regexing pat . match
 
 heavyReplace :: Regex -> BS.ByteString -> BS.ByteString -> BS.ByteString
-heavyReplace pat replacement src = gsub pat replacement src
+heavyReplace pat replacement src = PCRE.gsub pat replacement src
 
 lensReplace :: Regex -> BS.ByteString -> BS.ByteString -> BS.ByteString
-lensReplace pat replacement src = src & regex pat . match .~ replacement
+lensReplace pat replacement src = src & regexing pat . match .~ replacement
