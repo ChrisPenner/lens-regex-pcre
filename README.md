@@ -4,7 +4,7 @@
 
 Based on `pcre-heavy`; so it should support any regexes or options which it supports.
 
-Performance is [equal, sometimes **better**](#performance) than that of `pcre-heavy` alone.
+Performance is [equal, sometimes **better**](https://github.com/ChrisPenner/lens-regex-pcre#performance) than that of `pcre-heavy` alone.
 
 Which module should you use?
 
@@ -61,7 +61,7 @@ Basically anything you want to do is possible somehow.
 
 # Performance
 
-See the [benchmarks](./bench/Bench.hs).
+See the [benchmarks](https://github.com/ChrisPenner/lens-regex-pcre/blob/master/bench/Bench.hs).
 
 ## Summary
 
@@ -143,5 +143,5 @@ Benchmark lens-regex-pcre-bench: FINISH
 
 Precise Expected behaviour (and examples) can be found in the test suites:
 
-* [ByteString tests](./test/ByteString.hs)
-* [Text tests](./test/Text.hs)
+* [ByteString tests](https://github.com/ChrisPenner/lens-regex-pcre/blob/master/test/ByteString.hs)
+* [Text tests](https://github.com/ChrisPenner/lens-regex-pcre/blob/master/test/Text.hs)
