@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 19bd65f2de279f3777dc4f946f7d0efb2805098d91aa727f525e3a4375b09351
+-- hash: 6af08c0ccc1056deeb2c3dd469eca9c04a2fd667f31e9039181fc2acc991f398
 
 name:           lens-regex-pcre
-version:        1.0.0.0
+version:        1.0.0.1
 synopsis:       A lensy interface to regular expressions
 description:    Please see the README on GitHub at <https://github.com/ChrisPenner/lens-regex-pcre#readme>
 category:       Regex
