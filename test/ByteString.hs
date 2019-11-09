@@ -11,6 +11,10 @@ import Test.Hspec
 spec :: Spec
 spec = do
     describe "regex" $ do
+        xdescribe "pcre-heavy-compat" $ do
+            it "should handle crazy nested groups" $ do
+                "abcdefhijklm" ^? [regex|^(?:a(b(c)))(?:d(e(f)))(?:h(i(j)))(?:k(l(m)))$|] . matchAndGroups
+                    `shouldBe` Just ("abcdefhijklm", ["bc", "c", "ef", "f", "ij", "j", "lm", "m"])
         describe "match" $ do
             describe "getting" $ do
                 it "should find one match" $ do
