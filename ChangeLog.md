@@ -1,5 +1,11 @@
 # Changelog for lens-regex-pcre
 
+# Next
+
+- Handle optional or alternated groups like `pcre-heavy`. This may change group behaviour on regular expressions which had groups with optional groups. E.g.:
+    - `A(x)?(B)`
+    - `(A)|(B)|(C)`
+
 # 1.0.0.0
 - Add `regexing` and `makeRegexTraversalQQ`
 - Replace `regex` traversal maker with `regex` QuasiQuoter

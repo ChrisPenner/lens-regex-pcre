@@ -299,6 +299,7 @@ splitAll txt matches = fmap (second (\(txt', (start,_), grps) -> groupSplit txt'
 
 groupSplit :: BS.ByteString -> Int -> GroupRanges -> [Either BS.Builder BS.Builder]
 groupSplit txt _ [] = [Left $ BS.byteString txt]
+groupSplit txt offset ((-1, -1) : rest) = Right "" : groupSplit txt offset rest
 groupSplit txt offset ((grpStart, grpEnd) : rest) | offset == grpStart =
     let (prefix, suffix) = BS.splitAt (grpEnd - offset) txt
      in Right (BS.byteString prefix) : groupSplit suffix grpEnd rest

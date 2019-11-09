@@ -89,9 +89,11 @@ spec = do
                 ("one two three four" ^.. [regex|(\w+) (\w+)|] . groups . ix 1)
                 `shouldBe` ["two", "four"]
 
-            xit "should handle weird group alternation" $ do
-                "1:2 a=b" ^.. [regex|(\d):(\d)|(\w)=(\w)|] . groups
-                `shouldBe` [[ "not entirely sure what I expect this to be yet" ]]
+            it "should handle weird group alternation" $ do
+                ("AB" ^.. [regex|A(x)?(B)|] . groups `shouldBe` [["", "B"]])
+                ("B" ^.. [regex|(A)|(B)|] . groups `shouldBe` [["", "B"]])
+                -- This behaviour is consistent with pcre-heavy
+                ("A" ^.. [regex|(A)|(B)|] . groups `shouldBe` [["A"]])
 
         describe "setting" $ do
             it "should allow setting groups as a list" $ do
