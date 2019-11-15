@@ -23,6 +23,8 @@ module Control.Lens.Regex.ByteString
     , match
     , groups
     , group
+    , namedGroups
+    , namedGroup
     , matchAndGroups
 
     -- * Compiling regexes to Traversals
@@ -47,7 +49,6 @@ import qualified Language.Haskell.TH as TH
 import GHC.TypeLits
 import qualified Data.Map as M
 import Data.Tuple (swap)
-import Data.Maybe (catMaybes)
 
 -- $setup
 -- >>> :set -XQuasiQuotes
@@ -124,36 +125,6 @@ groups = conjoined groupsT (reindexed (view match) selfIndex <. groupsT)
       groupsT :: Lens' Match [BS.ByteString]
       groupsT = chunks . partsOf (traversed . _Right . building)
 
-namedGroups :: IndexedLens' BS.ByteString Match (M.Map BS.ByteString BS.ByteString)
-namedGroups = conjoined stepOne (reindexed (view match) selfIndex <. stepOne)
-    where
-      -- stepOne :: Traversal' Match (M.Map BS.ByteString BS.ByteString)
-      stepOne :: Lens' Match (M.Map BS.ByteString BS.ByteString)
-      stepOne f m = m & (groups . zipT . converterT (_matchRegex m) . partsOf (traversed . _Right) . mapL) %%~ f
-      zipT :: Iso' [a]  [(Int, a)]
-      zipT = iso (zip [0..]) (fmap snd)
-      converterT :: PCRE.Regex -> Lens' [(Int, BS.ByteString)] [Either (Int, BS.ByteString) (BS.ByteString, BS.ByteString)]
-      converterT pattern f xs =
-          f (converter pattern xs) <&> itraversed %@~ \i l -> either id ((i,) . snd) l
-      converter :: PCRE.Regex -> [(Int, BS.ByteString)] -> [Either (Int, BS.ByteString) (BS.ByteString, BS.ByteString)]
-      converter pattern = fmap $ \(i, s) ->
-          case M.lookup i (names pattern) of
-              Nothing -> Left (i, s)
-              Just n -> Right (n, s)
-      mapL :: Lens' [(BS.ByteString, BS.ByteString)] (M.Map BS.ByteString BS.ByteString)
-      mapL = lens M.fromList setter
-        where
-          setter :: [(BS.ByteString, BS.ByteString)] -> M.Map BS.ByteString BS.ByteString -> [(BS.ByteString, BS.ByteString)]
-          setter xs m = xs <&> \(k, _) -> (k, M.findWithDefault "" k m)
-
-
-
-      names :: PCRE.Regex -> M.Map Int BS.ByteString
-      names pattern = M.fromList . fmap swap $ PCRE.captureNames pattern
-
-namedGroup :: BS.ByteString -> IndexedTraversal' BS.ByteString Match BS.ByteString
-namedGroup name = namedGroups <. ix name
-
 -- | Access a specific group of a match. Numbering starts at 0.
 --
 -- Stashes the full match text as the index in case you need it.
@@ -175,6 +146,33 @@ namedGroup name = namedGroups <. ix name
 -- "(a, b), b"
 group :: Int -> IndexedTraversal' BS.ByteString Match BS.ByteString
 group n = groups <. ix n
+
+namedGroups :: IndexedLens' BS.ByteString Match (M.Map BS.ByteString BS.ByteString)
+namedGroups = conjoined stepOne (reindexed (view match) selfIndex <. stepOne)
+    where
+      -- stepOne :: Traversal' Match (M.Map BS.ByteString BS.ByteString)
+      stepOne :: Lens' Match (M.Map BS.ByteString BS.ByteString)
+      stepOne f m = m & (groups . zipT . converterT (_matchRegex m) . partsOf (traversed . _Right) . mapL) %%~ f
+      zipT :: Iso' [a]  [(Int, a)]
+      zipT = iso (zip [0..]) (fmap snd)
+      converterT :: PCRE.Regex -> Lens' [(Int, BS.ByteString)] [Either (Int, BS.ByteString) (BS.ByteString, BS.ByteString)]
+      converterT pattern f xs =
+          f (converter pattern xs) <&> itraversed %@~ \i l -> either id ((i,) . snd) l
+      converter :: PCRE.Regex -> [(Int, BS.ByteString)] -> [Either (Int, BS.ByteString) (BS.ByteString, BS.ByteString)]
+      converter pattern = fmap $ \(i, s) ->
+          case M.lookup i (names pattern) of
+              Nothing -> Left (i, s)
+              Just n -> Right (n, s)
+      mapL :: Lens' [(BS.ByteString, BS.ByteString)] (M.Map BS.ByteString BS.ByteString)
+      mapL = lens M.fromList setter
+        where
+          setter :: [(BS.ByteString, BS.ByteString)] -> M.Map BS.ByteString BS.ByteString -> [(BS.ByteString, BS.ByteString)]
+          setter xs m = xs <&> \(k, _) -> (k, M.findWithDefault "" k m)
+      names :: PCRE.Regex -> M.Map Int BS.ByteString
+      names pattern = M.fromList . fmap swap $ PCRE.captureNames pattern
+
+namedGroup :: BS.ByteString -> IndexedTraversal' BS.ByteString Match BS.ByteString
+namedGroup name = namedGroups <. ix name
 
 -- | Traverse each match
 --

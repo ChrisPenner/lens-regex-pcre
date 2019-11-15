@@ -5,6 +5,7 @@ module Text where
 import Control.Lens
 import Control.Lens.Regex.Text
 import qualified Data.Text as T
+import qualified Data.Map as M
 import Test.Hspec
 
 spec :: Spec
@@ -146,6 +147,40 @@ spec = do
             it "should compose indices with matches" $ do
                 ("one two three four" ^.. ([regex|(\w+) (\w+)|] <.> groups . traversed) . withIndex)
                 `shouldBe` [((0, 0), "one"), ((0, 1), "two"), ((1, 0), "three"), ((1, 1), "four")]
+
+    describe "namedGroups" $ do
+        describe "getting" $ do
+            it "should get named groups" $ do
+                "a b c" ^.. [regex|(?<mygroup>\w)|] . namedGroups
+                `shouldBe` [M.fromList [("mygroup", "a")], M.fromList [("mygroup", "b")], M.fromList [("mygroup", "c")]]
+
+            it "should get multiple named groups" $ do
+                "raindrops on roses and whiskers on kittens" ^.. [regex|(?<one>\w+) on (?<two>\w+)|] . namedGroups
+                `shouldBe` [M.fromList [("one", "raindrops"), ("two", "roses")], M.fromList [("one", "whiskers"), ("two", "kittens")]]
+
+            it "should allow getting a specific named group" $ do
+                ("raindrops on roses and whiskers on kittens" ^.. [regex|(?<one>\w+) on (?<two>\w+)|] . namedGroups . ix "two")
+                `shouldBe` ["roses", "kittens"]
+
+            it "should handle weird group alternation" $ do
+                ("AB" ^.. [regex|A(?<opt>x)?(?<always>B)|] . namedGroups `shouldBe` [M.fromList [("opt", ""), ("always", "B")]])
+                ("B" ^.. [regex|(?<a>A)|(?<b>B)|] . namedGroups `shouldBe` [M.fromList [("a", ""), ("b", "B")]])
+                -- This is the behaviour of pcre-heavy, it's a bit unfortunate
+                ("A" ^.. [regex|(?<a>A)|(?<b>B)|] . namedGroups `shouldBe` [M.fromList [("a", "A")]])
+
+        describe "setting" $ do
+            it "should allow setting groups as a map" $ do
+                ("one two three" & [regex|(?<a>\w+) (?<b>\w+)|] . namedGroups .~ M.fromList [("a", "1"), ("b", "2")])
+                `shouldBe` "1 2 three"
+
+    describe "namedGroup" $ do
+        it "should get a single named group" $ do
+                "a:b c:d" ^.. [regex|(?<before>\w):(?<after>\w)|] . namedGroup "after"
+                `shouldBe` ["b", "d"]
+
+        it "should set a single group" $ do
+                "a:b c:d" & [regex|(\w):(?<after>\w)|] . namedGroup "after" %~ T.toUpper
+                `shouldBe` "a:B c:D"
 
     describe "matchAndGroups" $ do
         it "should get match and groups" $ do

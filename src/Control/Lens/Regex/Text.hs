@@ -19,6 +19,8 @@ module Control.Lens.Regex.Text
     , match
     , groups
     , group
+    , namedGroups
+    , namedGroup
     , matchAndGroups
 
     -- * Compiling regexes to Traversals
@@ -35,6 +37,7 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Error as T
 import qualified Data.ByteString as BS
 import qualified Text.Regex.PCRE.Heavy as PCRE
+import qualified Data.Map as M
 import Control.Lens hiding (re, matching)
 import qualified Language.Haskell.TH as TH
 import qualified Language.Haskell.TH.Quote as TH
@@ -189,7 +192,7 @@ regexing pat = utf8 . RBS.regexing pat
 --
 -- >>> "one-two" & [regex|(\w+)-(\w+)|] . groups <. traversed %@~ \mtch grp -> grp <> ":(" <> mtch <> ")"
 -- "one:(one-two)-two:(one-two)"
-groups :: IndexedTraversal' T.Text RBS.Match [T.Text]
+groups :: IndexedLens' T.Text RBS.Match [T.Text]
 groups = reindexed (view $ from utf8) RBS.groups <. mapping (from utf8)
 
 -- | Access a specific group of a match. Numbering starts at 0.
@@ -216,6 +219,15 @@ groups = reindexed (view $ from utf8) RBS.groups <. mapping (from utf8)
 -- "(a, b), b"
 group :: Int -> IndexedTraversal' T.Text RBS.Match T.Text
 group n = groups <. ix n
+
+namedGroups :: IndexedLens' T.Text RBS.Match (M.Map T.Text T.Text)
+namedGroups = reindexed (view $ from utf8) RBS.namedGroups <. mapAsTxt
+  where
+    mapAsTxt :: Iso' (M.Map BS.ByteString BS.ByteString) (M.Map T.Text T.Text)
+    mapAsTxt = iso (M.mapKeys (review utf8)) (M.mapKeys (view utf8)) . mapping (from utf8)
+
+namedGroup :: T.Text -> IndexedTraversal' T.Text RBS.Match T.Text
+namedGroup name = namedGroups <. ix name
 
 -- | Traverse each match
 --
