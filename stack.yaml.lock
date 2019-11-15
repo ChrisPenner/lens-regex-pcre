@@ -3,7 +3,14 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: pcre-light-0.4.1.0@sha256:4902ef06b037fd79448c7a63a65c1a4a1bf0bbc15ea7e67e71d52ec995e18460,1868
+    pantry-tree:
+      size: 467
+      sha256: 5e5f8d948ba577d4d838895ccb3533c6ef9876ef60884dae8342a77934cc2ec2
+  original:
+    hackage: pcre-light-0.4.1.0
 snapshots:
 - completed:
     size: 523448

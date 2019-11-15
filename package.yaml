@@ -22,10 +22,12 @@ description:         Please see the README on GitHub at <https://github.com/Chri
 dependencies:
 - base >= 4.7 && < 5
 - pcre-heavy
+- pcre-light >= 0.4.1.0
 - text
 - bytestring
 - lens
 - template-haskell
+- containers
 
 ghc-options:
 - -Wall

@@ -14,6 +14,7 @@ License     : BSD3
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TupleSections #-}
 
 module Control.Lens.Regex.ByteString
     (
@@ -37,12 +38,16 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Builder as BS
 import qualified Text.Regex.PCRE.Heavy as PCRE
+import qualified Text.Regex.PCRE.Light as PCRE
 import Control.Lens hiding (re)
 import Data.Bifunctor
 import qualified Language.Haskell.TH.Quote as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import qualified Language.Haskell.TH as TH
 import GHC.TypeLits
+import qualified Data.Map as M
+import Data.Tuple (swap)
+import Data.Maybe (catMaybes)
 
 -- $setup
 -- >>> :set -XQuasiQuotes
@@ -58,16 +63,17 @@ type GroupRanges = [(Int, Int)]
 
 -- | Match represents an opaque regex match.
 -- You can drill into it using 'match', 'groups', 'group' or 'matchAndGroups'
-newtype Match = Match [Either BS.Builder BS.Builder]
+data Match =
+    Match { _chunks    :: [Either BS.Builder BS.Builder]
+          , _matchRegex :: PCRE.Regex
+          }
+makeLenses ''Match
 
 instance TypeError
   ('Text "You're trying to 'show' a raw 'Match' object."
    ':$$: 'Text "You likely missed adding a 'match' or 'groups' or 'group' call after your 'regex' call :)")
   => Show Match where
   show _ = "This is a raw Match object, did you miss a 'match' or 'groups' or 'group' call after your 'regex'?"
-
-chunks :: Iso' Match [Either BS.Builder BS.Builder]
-chunks = coerced
 
 unBuilder :: BS.Builder -> BS.ByteString
 unBuilder = BL.toStrict . BS.toLazyByteString
@@ -112,11 +118,41 @@ building = iso unBuilder BS.byteString
 --
 -- >>> "one-two" & [regex|(\w+)-(\w+)|] . groups <. traversed %@~ \mtch grp -> grp <> ":(" <> mtch <> ")"
 -- "one:(one-two)-two:(one-two)"
-groups :: IndexedTraversal' BS.ByteString Match [BS.ByteString]
+groups :: IndexedLens' BS.ByteString Match [BS.ByteString]
 groups = conjoined groupsT (reindexed (view match) selfIndex <. groupsT)
     where
-      groupsT :: Traversal' Match [BS.ByteString]
+      groupsT :: Lens' Match [BS.ByteString]
       groupsT = chunks . partsOf (traversed . _Right . building)
+
+namedGroups :: IndexedLens' BS.ByteString Match (M.Map BS.ByteString BS.ByteString)
+namedGroups = conjoined stepOne (reindexed (view match) selfIndex <. stepOne)
+    where
+      -- stepOne :: Traversal' Match (M.Map BS.ByteString BS.ByteString)
+      stepOne :: Lens' Match (M.Map BS.ByteString BS.ByteString)
+      stepOne f m = m & (groups . zipT . converterT (_matchRegex m) . partsOf (traversed . _Right) . mapL) %%~ f
+      zipT :: Iso' [a]  [(Int, a)]
+      zipT = iso (zip [0..]) (fmap snd)
+      converterT :: PCRE.Regex -> Lens' [(Int, BS.ByteString)] [Either (Int, BS.ByteString) (BS.ByteString, BS.ByteString)]
+      converterT pattern f xs =
+          f (converter pattern xs) <&> itraversed %@~ \i l -> either id ((i,) . snd) l
+      converter :: PCRE.Regex -> [(Int, BS.ByteString)] -> [Either (Int, BS.ByteString) (BS.ByteString, BS.ByteString)]
+      converter pattern = fmap $ \(i, s) ->
+          case M.lookup i (names pattern) of
+              Nothing -> Left (i, s)
+              Just n -> Right (n, s)
+      mapL :: Lens' [(BS.ByteString, BS.ByteString)] (M.Map BS.ByteString BS.ByteString)
+      mapL = lens M.fromList setter
+        where
+          setter :: [(BS.ByteString, BS.ByteString)] -> M.Map BS.ByteString BS.ByteString -> [(BS.ByteString, BS.ByteString)]
+          setter xs m = xs <&> \(k, _) -> (k, M.findWithDefault "" k m)
+
+
+
+      names :: PCRE.Regex -> M.Map Int BS.ByteString
+      names pattern = M.fromList . fmap swap $ PCRE.captureNames pattern
+
+namedGroup :: BS.ByteString -> IndexedTraversal' BS.ByteString Match BS.ByteString
+namedGroup name = namedGroups <. ix name
 
 -- | Access a specific group of a match. Numbering starts at 0.
 --
@@ -177,7 +213,13 @@ match = conjoined matchBS (reindexed (view groups) selfIndex <. matchBS)
 --
 -- Also see 'mkRegexTraversalQQ'
 regexing :: PCRE.Regex -> IndexedTraversal' Int BS.ByteString Match
-regexing pattern = conjoined (regexT pattern) (indexing (regexT pattern)) . from chunks
+regexing pattern = conjoined (regexT pattern) (indexing (regexT pattern)) . asMatch
+  where
+    -- Unlawful iso, but since the Regex field of Match isn't exported it's fine.
+    asMatch :: Iso' [Either BS.Builder BS.Builder] Match
+    asMatch = iso to' from'
+    to' xs = Match xs pattern
+    from' (Match xs _) = xs
 
 -- | Base regex traversal helper
 regexT :: PCRE.Regex -> Traversal' BS.ByteString [Either BS.Builder BS.Builder]
