@@ -63,12 +63,12 @@ type MatchRange = (Int, Int)
 type GroupRanges = [(Int, Int)]
 
 -- | Match represents an opaque regex match.
--- You can drill into it using 'match', 'groups', 'group' or 'matchAndGroups'
+-- You can drill into it using 'match', 'groups', 'group', 'namedGroup', 'namedGroups' or 'matchAndGroups'
 data Match =
     Match { _chunks    :: [Either BS.Builder BS.Builder]
           , _matchRegex :: PCRE.Regex
           }
-makeLenses ''Match
+makeLensesFor [("_chunks", "chunks")] ''Match
 
 instance TypeError
   ('Text "You're trying to 'show' a raw 'Match' object."
@@ -149,7 +149,7 @@ group n = groups <. ix n
 -- | Access all the named groups of a match as a 'M.Map'. Stashes the full match text as the index in case
 -- you need it.
 --
--- Note that you can edit the groups through this lens,
+-- Note that you can edit the groups through this lens, but the behaviour is undefined when editing inner elements of __nested__ groups.
 -- Behaviour is undefined if groups are removed from the map (so don't do that).
 --
 -- NOTE: There's currently some strange behaviour in pcre-heavy where trailing unmatched optional groups are omitted, I'm looking into getting that patched, but for now, note the difference in behaviour:
@@ -291,9 +291,9 @@ matchAndGroups = to $ \m -> (m ^. match, m ^. groups)
 
 -- | Builds a traversal over text using a Regex pattern
 --
--- It's a 'QuasiQuoter' which creates a Traversal out of the given regex string.
--- It's equivalent to calling 'regexing' on a 'Regex' created using the
--- 're' QuasiQuoter.
+-- It's a 'TH.QuasiQuoter' which creates a Traversal out of the given regex string.
+-- It's equivalent to calling 'regexing' on a 'PCRE.Regex' created using the
+-- 'PCRE.re' QuasiQuoter.
 --
 -- The "real" type is:
 --
@@ -360,12 +360,12 @@ matchAndGroups = to $ \m -> (m ^. match, m ^. groups)
 -- >>> "Monday: 29, Tuesday: 99, Wednesday: 3" & partsOf ([regex|\d+|] . match . from packedChars . _Show @Int) %~ sort
 -- "Monday: 3, Tuesday: 29, Wednesday: 99"
 --
--- To alter behaviour of the regex you may wish to pass 'PCREOption's when compiling it.
+-- To alter behaviour of the regex you may wish to pass 'PCRE.PCREOption's when compiling it.
 -- The default behaviour may seem strange in certain cases; e.g. it operates in 'single-line'
--- mode. You can 'compile' the 'Regex' separately and add any options you like, then pass the resulting
--- 'Regex' into 'regex';
+-- mode. You can 'PCRE.compile' the 'PCRE.Regex' separately and add any options you like, then pass the resulting
+-- 'PCRE.Regex' into 'regex';
 -- Alternatively can make your own version of the QuasiQuoter with any options you want embedded
--- by using 'mkRegexQQ'.
+-- by using 'PCRE.mkRegexQQ'.
 regex :: TH.QuasiQuoter
 regex = PCRE.re{TH.quoteExp=quoter}
   where

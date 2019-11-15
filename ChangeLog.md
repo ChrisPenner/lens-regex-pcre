@@ -1,11 +1,14 @@
 # Changelog for lens-regex-pcre
 
-# Next
+# 1.0.1.0
+
+### *BREAKING CHANGES*
+This release fixes a pretty major bugs surrounding the behaviour of optional groups. It's **unlikely** but still possible that the change to grouping behaviour has changed the behaviour of your application, but most likely it just fixed some bugs you didn't know you had yet...
 
 - Handle optional or alternated groups like `pcre-heavy`. This may change group behaviour on regular expressions which had groups with optional groups. E.g.:
     - `A(x)?(B)`
     - `(A)|(B)|(C)`
-- Switch `groups` from `IndexedTraversal'` to `IndexedLens'`
+- Switch `groups` from `IndexedTraversal'` to `IndexedLens'`. Since all lenses are valid traversals this shouldn't cause any breakages.
 - Add `namedGroups` and `namedGroup`
 
 # 1.0.0.0
