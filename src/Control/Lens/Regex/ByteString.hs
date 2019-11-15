@@ -85,7 +85,6 @@ building = iso unBuilder BS.byteString
 -- | Access all groups of a match as a list. Stashes the full match text as the index in case
 -- you need it.
 --
--- Note that you can edit the groups through this traversal,
 -- Changing the length of the list has behaviour similar to 'partsOf'.
 --
 -- Get all matched groups:
@@ -147,6 +146,41 @@ groups = conjoined groupsT (reindexed (view match) selfIndex <. groupsT)
 group :: Int -> IndexedTraversal' BS.ByteString Match BS.ByteString
 group n = groups <. ix n
 
+-- | Access all the named groups of a match as a 'M.Map'. Stashes the full match text as the index in case
+-- you need it.
+--
+-- Note that you can edit the groups through this lens,
+-- Behaviour is undefined if groups are removed from the map (so don't do that).
+--
+-- NOTE: There's currently some strange behaviour in pcre-heavy where trailing unmatched optional groups are omitted, I'm looking into getting that patched, but for now, note the difference in behaviour:
+--
+-- >>> "A" ^? [regex|(?<a>A)|(?<b>B)|] . namedGroups
+-- Just (fromList [("a","A")])
+--
+-- >>> "B" ^? [regex|(?<a>A)|(?<b>B)|] . namedGroups
+-- Just (fromList [("a",""),("b","B")])
+--
+-- Get all matched groups:
+--
+-- >>> "raindrops on roses and whiskers on kittens" ^.. [regex|(?<first>\w+) on (?<second>\w+)|] . namedGroups
+-- [fromList [("first","raindrops"),("second","roses")],fromList [("first","whiskers"),("second","kittens")]]
+--
+-- You can access a specific group combining with 'ix', or just use 'namedGroup' instead
+--
+-- >>> "raindrops on roses and whiskers on kittens" ^.. [regex|(?<first>\w+) on (?<second>\w+)|] . namedGroups .  ix "second"
+-- ["roses","kittens"]
+--
+-- Editing groups:
+--
+-- >>> "raindrops on roses and whiskers on kittens" & [regex|(?<first>\w+) on (?<second>\w+)|] . namedGroups . ix "second" %~ Char8.map toUpper
+-- "raindrops on ROSES and whiskers on KITTENS"
+--
+-- Use indexed helpers to access the full match when operating on a group.
+--
+-- This replaces the "first" group with the full match text wrapped in parens:
+--
+-- >>> "one-two" & [regex|(?<first>\w+)-(\w+)|] . namedGroups <. ix "first" %@~ \mtch grp -> grp <> ":(" <> mtch <> ")"
+-- "one:(one-two)-two"
 namedGroups :: IndexedLens' BS.ByteString Match (M.Map BS.ByteString BS.ByteString)
 namedGroups = conjoined stepOne (reindexed (view match) selfIndex <. stepOne)
     where
@@ -171,6 +205,25 @@ namedGroups = conjoined stepOne (reindexed (view match) selfIndex <. stepOne)
       names :: PCRE.Regex -> M.Map Int BS.ByteString
       names pattern = M.fromList . fmap swap $ PCRE.captureNames pattern
 
+-- | Access a specific named group of a match
+--
+-- See 'namedGroups' for caveats and more info.
+--
+-- Stashes the full match text as the index in case you need it.
+--
+-- >>> "key:value, a:b" ^.. [regex|(?<first>\w+):(?<second>\w+)|] . namedGroup "first"
+-- ["key","a"]
+--
+-- >>> "key:value, a:b" ^.. [regex|(?<first>\w+):(?<second>\w+)|] . namedGroup "second"
+-- ["value","b"]
+--
+-- >>> "key:value, a:b" & [regex|(?<first>\w+):(?<second>\w+)|] . namedGroup "second" %~ Char8.map toUpper
+-- "key:VALUE, a:B"
+--
+-- Replace the first capture group with the full match:
+--
+-- >>> "a, b" & [regex|(?<first>\w+), (?<second>\w+)|] . namedGroup "first" .@~ \i -> "(" <> i <> ")"
+-- "(a, b), b"
 namedGroup :: BS.ByteString -> IndexedTraversal' BS.ByteString Match BS.ByteString
 namedGroup name = namedGroups <. ix name
 
