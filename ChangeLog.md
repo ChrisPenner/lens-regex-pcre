@@ -5,6 +5,8 @@
 - Handle optional or alternated groups like `pcre-heavy`. This may change group behaviour on regular expressions which had groups with optional groups. E.g.:
     - `A(x)?(B)`
     - `(A)|(B)|(C)`
+- Switch `groups` from `IndexedTraversal'` to `IndexedLens'`
+- Add `namedGroups` and `namedGroup`
 
 # 1.0.0.0
 - Add `regexing` and `makeRegexTraversalQQ`
