@@ -22,11 +22,13 @@ on.
 # Examples
 
 ```haskell
+import Control.Lens.Regex.Text
+
 txt :: Text
 txt = "raindrops on roses and whiskers on kittens"
 
 -- Search
->>> has [regex|whisk|] . match txt
+>>> has [regex|whisk|] txt
 True
 
 -- Get matches

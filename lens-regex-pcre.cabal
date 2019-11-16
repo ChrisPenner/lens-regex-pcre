@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f8e680a55cc9fe4c7458f854ef8b81017f7f0eae50b405ab56ab28f1de375032
+-- hash: d1c8fcf51e5b49738911f4885c246d4f3a9e709234fad2feefcd25246e284ac2
 
 name:           lens-regex-pcre
 version:        1.1.0.0
@@ -14,7 +14,7 @@ category:       Regex
 homepage:       https://github.com/ChrisPenner/lens-regex-pcre#readme
 bug-reports:    https://github.com/ChrisPenner/lens-regex-pcre/issues
 author:         Chris Penner
-maintainer:     example@example.com
+maintainer:     christopher.penner@gmail.com
 copyright:      2019 Chris Penner
 license:        BSD3
 license-file:   LICENSE
