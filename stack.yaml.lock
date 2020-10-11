@@ -3,17 +3,10 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages:
-- completed:
-    hackage: pcre-light-0.4.1.0@sha256:4902ef06b037fd79448c7a63a65c1a4a1bf0bbc15ea7e67e71d52ec995e18460,1868
-    pantry-tree:
-      size: 467
-      sha256: 5e5f8d948ba577d4d838895ccb3533c6ef9876ef60884dae8342a77934cc2ec2
-  original:
-    hackage: pcre-light-0.4.1.0
+packages: []
 snapshots:
 - completed:
-    size: 523448
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/1.yaml
-    sha256: 0045b9bae36c3bb2dd374c29b586389845af1557eea0423958d152fc500d4fbf
-  original: lts-14.1
+    size: 532386
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/17.yaml
+    sha256: d3ee1ae797cf63189c95cf27f00700304946c5cb3c1e6a82001cd6584a221e1b
+  original: lts-16.17
