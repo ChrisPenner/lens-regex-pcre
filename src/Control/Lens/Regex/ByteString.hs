@@ -15,6 +15,7 @@ License     : BSD3
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE DerivingStrategies #-}
 
 module Control.Lens.Regex.ByteString
     (
@@ -62,12 +63,30 @@ import Data.Tuple (swap)
 type MatchRange = (Int, Int)
 type GroupRanges = [(Int, Int)]
 
+unBuilder :: BS.Builder -> BS.ByteString
+unBuilder = BL.toStrict . BS.toLazyByteString
+
+building :: Iso' BS.Builder BS.ByteString
+building = iso unBuilder BS.byteString
+
+
 -- | Match represents an opaque regex match.
 -- You can drill into it using 'match', 'groups', 'group', 'namedGroup', 'namedGroups' or 'matchAndGroups'
 data Match =
     Match { _chunks    :: [Either BS.Builder BS.Builder]
           , _matchRegex :: PCRE.Regex
           }
+
+instance Eq Match where
+  a == b = (_matchRegex a == _matchRegex b)
+    && (((bimap unBuilder unBuilder) <$> _chunks a) == ((bimap unBuilder unBuilder) <$> _chunks b))
+
+instance Ord Match where
+  compare a b = compare (_matchRegex a) (_matchRegex b)
+    <> compare ((bimap unBuilder unBuilder) <$> _chunks a) ((bimap unBuilder unBuilder) <$> _chunks b)
+
+
+
 makeLensesFor [("_chunks", "chunks")] ''Match
 
 instance TypeError
@@ -75,12 +94,6 @@ instance TypeError
    ':$$: 'Text "You likely missed adding a 'match' or 'groups' or 'group' call after your 'regex' call :)")
   => Show Match where
   show _ = "This is a raw Match object, did you miss a 'match' or 'groups' or 'group' call after your 'regex'?"
-
-unBuilder :: BS.Builder -> BS.ByteString
-unBuilder = BL.toStrict . BS.toLazyByteString
-
-building :: Iso' BS.Builder BS.ByteString
-building = iso unBuilder BS.byteString
 
 -- | Access all groups of a match as a list. Stashes the full match text as the index in case
 -- you need it.

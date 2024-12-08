@@ -1,13 +1,13 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d1c8fcf51e5b49738911f4885c246d4f3a9e709234fad2feefcd25246e284ac2
+-- hash: 754b704711197304d9dc42fd95daa8ff18d78f8327f4dffac02d893d13ac7ac6
 
 name:           lens-regex-pcre
-version:        1.1.0.0
+version:        1.1.1.0
 synopsis:       A lensy interface to regular expressions
 description:    Please see the README on GitHub at <https://github.com/ChrisPenner/lens-regex-pcre#readme>
 category:       Regex
