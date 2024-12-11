@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 754b704711197304d9dc42fd95daa8ff18d78f8327f4dffac02d893d13ac7ac6
+-- hash: 6ab2b296761109d7cc7b2a86dd4ca15b111214086ceff217b38b72b7de9e5629
 
 name:           lens-regex-pcre
 version:        1.1.1.0
@@ -62,27 +62,6 @@ test-suite lens-regex-pcre-test
     , bytestring
     , containers
     , hspec
-    , lens
-    , lens-regex-pcre
-    , pcre-heavy
-    , pcre-light >=0.4.1.0
-    , template-haskell
-    , text
-  default-language: Haskell2010
-
-benchmark lens-regex-pcre-bench
-  type: exitcode-stdio-1.0
-  main-is: Bench.hs
-  other-modules:
-      Paths_lens_regex_pcre
-  hs-source-dirs:
-      bench
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      base >=4.7 && <5
-    , bytestring
-    , containers
-    , gauge
     , lens
     , lens-regex-pcre
     , pcre-heavy

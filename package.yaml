@@ -1,5 +1,5 @@
 name:                lens-regex-pcre
-version:             1.1.1.0
+version:             1.1.2.0
 github:              "ChrisPenner/lens-regex-pcre"
 license:             BSD3
 author:              "Chris Penner"
@@ -46,14 +46,14 @@ tests:
     - lens-regex-pcre
     - hspec
 
-benchmarks:
-  lens-regex-pcre-bench:
-    main:                Bench.hs
-    source-dirs:         bench
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - lens-regex-pcre
-    - gauge
+# benchmarks:
+#   lens-regex-pcre-bench:
+#     main:                Bench.hs
+#     source-dirs:         bench
+#     ghc-options:
+#     - -threaded
+#     - -rtsopts
+#     - -with-rtsopts=-N
+#     dependencies:
+#     - lens-regex-pcre
+#     - gauge
